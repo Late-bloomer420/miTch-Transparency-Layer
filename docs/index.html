@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Privacy Policy for miTch Transparency Layer</title>
+    <meta name="description" content="Privacy policy for the miTch Transparency Layer Chrome extension.">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #080b10;
+        --panel: #111822;
+        --line: #263548;
+        --text: #edf5ff;
+        --muted: #9baabe;
+        --accent: #46d9b5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 12% 0%, rgba(70, 217, 181, 0.16), transparent 30%),
+          radial-gradient(circle at 88% 6%, rgba(109, 168, 255, 0.14), transparent 34%),
+          var(--bg);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.6;
+      }
+
+      main {
+        width: min(860px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 56px 0;
+      }
+
+      .card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        background: rgba(17, 24, 34, 0.88);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.32);
+        padding: clamp(22px, 5vw, 44px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 28px;
+      }
+
+      .mark {
+        display: grid;
+        width: 48px;
+        height: 48px;
+        place-items: center;
+        border: 1px solid rgba(70, 217, 181, 0.5);
+        border-radius: 12px;
+        color: var(--accent);
+        font-weight: 800;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(30px, 5vw, 48px);
+        line-height: 1.08;
+      }
+
+      .subtitle {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      h2 {
+        margin-top: 34px;
+        color: var(--accent);
+        font-size: 18px;
+      }
+
+      p {
+        margin-top: 12px;
+      }
+
+      ul {
+        margin: 12px 0 0;
+        padding-left: 22px;
+      }
+
+      li {
+        margin: 6px 0;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      footer {
+        margin-top: 28px;
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article class="card">
+        <div class="brand">
+          <div class="mark" aria-hidden="true">mT</div>
+          <div>
+            <strong>miTch Transparency Layer</strong>
+            <p class="subtitle">See what websites can know before deciding what to share.</p>
+          </div>
+        </div>
+
+        <h1>Privacy Policy for miTch Transparency Layer</h1>
+
+        <p>miTch Transparency Layer is a browser extension that helps users understand browser-visible website behavior.</p>
+
+        <h2>Data Processing</h2>
+        <p>The extension analyzes information that is visible inside the user's browser, including:</p>
+        <ul>
+          <li>current website domain and page title</li>
+          <li>cookies associated with the current website</li>
+          <li>localStorage and sessionStorage usage</li>
+          <li>browser-visible network requests</li>
+          <li>browser permission states</li>
+          <li>fingerprinting-related browser surfaces such as Canvas, WebGL, AudioContext, and WebRTC</li>
+        </ul>
+
+        <h2>Local Processing Only</h2>
+        <p>All analysis is performed locally in the user's browser.</p>
+        <p>miTch Transparency Layer does not operate a backend server, does not create user accounts, and does not transmit analyzed data to the developer or to any third party.</p>
+
+        <h2>No Sale or Sharing of Data</h2>
+        <p>miTch Transparency Layer does not sell, share, or transfer user data to third parties.</p>
+
+        <h2>No Remote Code</h2>
+        <p>The extension does not use remote code. All extension code is packaged with the extension.</p>
+
+        <h2>Limitations</h2>
+        <p>miTch Transparency Layer only reports browser-visible behavior and technical capability. It does not claim what a website stores on its servers, how long data is retained, whether data is sold, or whether internal profiling occurs.</p>
+
+        <h2>Contact</h2>
+        <p>For questions, contact the publisher through the Chrome Web Store listing or the linked GitHub repository.</p>
+
+        <footer>
+          Source policy file: <a href="../PRIVACY_POLICY.md">PRIVACY_POLICY.md</a>
+        </footer>
+      </article>
+    </main>
+  </body>
+</html>

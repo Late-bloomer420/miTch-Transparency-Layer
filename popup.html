@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>miTch Transparency Layer</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="brand-row">
+          <div class="mark" aria-hidden="true">mT</div>
+          <div>
+            <h1>miTch Transparency Layer</h1>
+            <p>See what websites can know before deciding what to share.</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="score-panel" aria-labelledby="score-title">
+        <div>
+          <span class="section-kicker">Transparency Surface Score</span>
+          <h2 id="score-title"><span id="scoreValue">--</span><small>/100</small></h2>
+          <p id="scoreCategory">Checking visible browser surfaces...</p>
+        </div>
+        <div class="score-ring" aria-hidden="true">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle id="scoreArc" class="ring-value" cx="60" cy="60" r="52"></circle>
+          </svg>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="site-title">
+        <div class="section-head">
+          <h2 id="site-title">Current Website</h2>
+          <span id="scanState" class="status-pill">Scanning</span>
+        </div>
+        <dl class="site-list">
+          <div><dt>Domain</dt><dd id="domain">Unknown</dd></div>
+          <div><dt>Protocol</dt><dd id="protocol">Unknown</dd></div>
+          <div><dt>Page Title</dt><dd id="pageTitle">Unknown</dd></div>
+        </dl>
+      </section>
+
+      <section class="grid-two">
+        <article class="panel compact" aria-labelledby="cookies-title">
+          <h2 id="cookies-title">Cookie Analysis</h2>
+          <div class="metric-row"><span>Total cookies</span><strong id="cookieTotal">0</strong></div>
+          <div class="metric-row"><span>First-party</span><strong id="firstPartyCookies">0</strong></div>
+          <div class="metric-row"><span>Third-party detectable</span><strong id="thirdPartyCookies">0</strong></div>
+        </article>
+
+        <article class="panel compact" aria-labelledby="storage-title">
+          <h2 id="storage-title">Storage Analysis</h2>
+          <div class="metric-row"><span>localStorage</span><strong id="localStorageUsage">Unknown</strong></div>
+          <div class="metric-row"><span>sessionStorage</span><strong id="sessionStorageUsage">Unknown</strong></div>
+        </article>
+      </section>
+
+      <section class="panel" aria-labelledby="fingerprint-title">
+        <div class="section-head">
+          <h2 id="fingerprint-title">Fingerprinting Surface Detection</h2>
+        </div>
+        <p class="guardrail">Detected browser surfaces may enable browser fingerprinting. This does not mean tracking occurred.</p>
+        <div id="fingerprintList" class="signal-list"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="permissions-title">
+        <h2 id="permissions-title">Permission Surface</h2>
+        <div id="permissionList" class="signal-list"></div>
+      </section>
+
+      <section class="panel report" aria-labelledby="report-title">
+        <h2 id="report-title">Three-Layer Report</h2>
+        <div class="report-columns">
+          <div>
+            <h3>Observed Facts</h3>
+            <ul id="observedFacts"></ul>
+          </div>
+          <div>
+            <h3>Potential Access</h3>
+            <ul id="potentialAccess"></ul>
+          </div>
+          <div>
+            <h3>Unknown</h3>
+            <ul id="unknowns"></ul>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        We show what is technically observable and technically possible. We do not claim what happens on remote servers.
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

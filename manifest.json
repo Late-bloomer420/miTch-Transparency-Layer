@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "miTch Transparency Layer",
+  "short_name": "miTch TL",
+  "version": "0.1.0",
+  "description": "Shows browser-visible website surfaces: observed facts, potential access, and unknown server-side behavior.",
+  "homepage_url": "https://late-bloomer420.github.io/miTch-Transparency-Layer/",
+  "action": {
+    "default_title": "miTch Transparency Layer",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "cookies",
+    "tabs",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ]
+}
