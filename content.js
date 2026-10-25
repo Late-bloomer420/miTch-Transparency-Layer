@@ -148,6 +148,57 @@ function collectCspSurface() {
   }
 }
 
+const VISIBILITY_FIELD_RULES = [
+  {
+    key: "health",
+    pattern: /health|medical|diagnosis|prescription|blood|allerg|medication|ehds/i,
+    label: "Health / Medical Attribute",
+    layer: "VULNERABLE (High)",
+    state: "Detected",
+    hint: "GDPR Art. 9 Special Category (VULNERABLE). Use selective disclosure instead of raw medical forms."
+  },
+  {
+    key: "financial",
+    pattern: /iban|bic|cc-|credit|card|bank|salary|tax|ssn/i,
+    label: "Financial / Tax Identifier",
+    layer: "VULNERABLE (High)",
+    state: "Detected",
+    hint: "High-risk financial attribute (VULNERABLE). Verify relying-party trust before disclosure."
+  },
+  {
+    key: "secret",
+    pattern: /password|passcode|pin|secret/i,
+    label: "Shared Secret / Password Input",
+    layer: "VULNERABLE (High)",
+    state: "Detected",
+    hint: "Shared secret requested. Hardware-bound AskMI passkeys avoid server-stored passwords."
+  },
+  {
+    key: "dob",
+    pattern: /birth|dob|bday|dateofbirth|geburtsdatum/i,
+    label: "Full Date of Birth (birth_date)",
+    layer: "GRUNDVERSORGUNG (Medium)",
+    state: "Prompt",
+    hint: "Over-collection warning: Full DOB requested. An AskMI age >= 18 predicate proof suffices."
+  },
+  {
+    key: "contact",
+    pattern: /phone|tel|mobile|address|street|postal|zip|plz|wohnort/i,
+    label: "Address / Phone Contact",
+    layer: "GRUNDVERSORGUNG (Medium)",
+    state: "Prompt",
+    hint: "GRUNDVERSORGUNG attribute. Share only if physical delivery or direct contact is required."
+  },
+  {
+    key: "identity_basic",
+    pattern: /given_name|family_name|firstname|lastname|fullname|email|e-mail/i,
+    label: "Basic Identity / Email (WELT)",
+    layer: "WELT (Low)",
+    state: "Not Detected",
+    hint: "Standard Layer 0 (WELT) attribute. Pairwise pseudonymous identifiers prevent cross-site correlation."
+  }
+];
+
 /**
  * Passive DOM field inspection aligned with @askmi/layer-resolver VISIBILITY_LAYER_MAP.
  * Never reads input values (.value) — only inspects field names/types/autocomplete tokens.
@@ -158,6 +209,7 @@ function collectVisibilityLayer() {
     grundversorgung: 0,
     welt: 0
   };
+  const findingsByKey = new Map();
 
   try {
     const fields = document.querySelectorAll("input, select, textarea");
@@ -169,6 +221,8 @@ function collectVisibilityLayer() {
         el.getAttribute("name"),
         el.getAttribute("id"),
         el.getAttribute("autocomplete"),
+        el.getAttribute("placeholder"),
+        el.getAttribute("aria-label"),
         type
       ]
         .filter(Boolean)
@@ -177,16 +231,22 @@ function collectVisibilityLayer() {
 
       if (!token) return;
 
-      if (
-        /iban|bic|cc-|card|credit|bank|salary|tax|ssn|health|medical|diagnosis|prescription|blood|allerg|medication|password|passkey|biometric/.test(
-          token
-        )
-      ) {
-        counts.vulnerable += 1;
-      } else if (/birth|dob|age|bday|phone|tel|address|street|postal|zip|school|education/.test(token)) {
-        counts.grundversorgung += 1;
-      } else if (/name|given|family|email|consent|public/.test(token)) {
-        counts.welt += 1;
+      for (const rule of VISIBILITY_FIELD_RULES) {
+        if (rule.pattern.test(token)) {
+          if (rule.layer === "VULNERABLE (High)") counts.vulnerable += 1;
+          else if (rule.layer === "GRUNDVERSORGUNG (Medium)") counts.grundversorgung += 1;
+          else counts.welt += 1;
+
+          if (!findingsByKey.has(rule.key)) {
+            findingsByKey.set(rule.key, {
+              label: rule.label,
+              layer: rule.layer,
+              state: rule.state,
+              hint: rule.hint
+            });
+          }
+          break;
+        }
       }
     });
   } catch {
@@ -204,7 +264,8 @@ function collectVisibilityLayer() {
 
   return {
     highestLayer,
-    counts
+    counts,
+    findings: Array.from(findingsByKey.values())
   };
 }
 

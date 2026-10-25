@@ -97,7 +97,8 @@ async function initStandalonePreview() {
     },
     visibilityLayer: {
       highestLayer: "None Detected",
-      counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }
+      counts: { vulnerable: 0, grundversorgung: 0, welt: 0 },
+      findings: []
     },
     screen: window.screen ? `${window.screen.width} × ${window.screen.height}` : "Unknown",
     language: navigator.language || "Unknown",
@@ -136,7 +137,7 @@ async function getContentData(tabId) {
       storage: { localStorage: "Unknown", sessionStorage: "Unknown" },
       fingerprinting: { canvas: false, webgl: false, audio: false, webrtc: false, evalAttempt: false },
       csp: { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] },
-      visibilityLayer: { highestLayer: "Unknown", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 } },
+      visibilityLayer: { highestLayer: "Unknown", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }, findings: [] },
       screen: null,
       language: null,
       timezone: null,
@@ -179,7 +180,7 @@ function classifyThirdPartyDomain(domain) {
 function buildAnalysis(url, cookies, contentData, requestData, permissions) {
   const fingerprinting = contentData.fingerprinting || {};
   const csp = contentData.csp || { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] };
-  const visibilityLayer = contentData.visibilityLayer || { highestLayer: "None Detected", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 } };
+  const visibilityLayer = contentData.visibilityLayer || { highestLayer: "None Detected", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }, findings: [] };
   const detectedFingerprintCount = Object.values(fingerprinting).filter(Boolean).length;
   const grantedPermissionCount = Object.values(permissions).filter((state) => state === "Granted").length;
   const promptPermissionCount = Object.values(permissions).filter((state) => state === "Prompt").length;
@@ -242,6 +243,7 @@ function renderAnalysis(analysis) {
   $("localStorageUsage").textContent = analysis.storage.localStorage;
   $("sessionStorageUsage").textContent = analysis.storage.sessionStorage;
 
+  renderVisibilityLayer(analysis.visibilityLayer);
   renderThirdPartyDomains(analysis.requestData);
 
   renderSignals("fingerprintList", Object.entries(fingerprintLabels).map(([key, label]) => ({
@@ -262,6 +264,33 @@ function renderAnalysis(analysis) {
 
   renderScore(analysis.score, analysis.category);
   renderReport(analysis);
+}
+
+function renderVisibilityLayer(visibilityLayer) {
+  const badgeEl = $("visibilityLayerBadge");
+  const listEl = $("visibilityLayerList");
+  if (!badgeEl || !listEl) return;
+
+  const highest = (visibilityLayer && visibilityLayer.highestLayer) || "None Detected";
+  badgeEl.textContent = highest;
+
+  const findings = (visibilityLayer && visibilityLayer.findings) || [];
+  if (findings.length === 0) {
+    renderSignals("visibilityLayerList", [{
+      name: "No sensitive data input forms detected",
+      state: "Not Detected",
+      stateText: "Clean",
+      meta: "No WELT, GRUNDVERSORGUNG, or VULNERABLE form inputs found on this page."
+    }]);
+    return;
+  }
+
+  renderSignals("visibilityLayerList", findings.map((item) => ({
+    name: item.label,
+    state: item.state || "Prompt",
+    stateText: item.layer.split(" ")[0],
+    meta: item.hint
+  })));
 }
 
 function renderThirdPartyDomains(requestData) {
