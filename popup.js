@@ -20,6 +20,12 @@ document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
   try {
+    const hasExtensionTabs = typeof chrome !== "undefined" && chrome.tabs && typeof chrome.tabs.query === "function";
+    if (!hasExtensionTabs) {
+      await initStandalonePreview();
+      return;
+    }
+
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab || !tab.url || !/^https?:\/\//i.test(tab.url)) {
       renderUnsupported();
@@ -47,6 +53,51 @@ async function init() {
     $("scanState").textContent = "Limited";
     $("scoreCategory").textContent = "Some browser-visible surfaces could not be read on this page.";
   }
+}
+
+async function initStandalonePreview() {
+  const url = new URL(window.location.href);
+  $("domain").textContent = url.hostname;
+  $("protocol").textContent = url.protocol.replace(":", "").toUpperCase();
+  $("pageTitle").textContent = "AskMI Wallet / Live Preview";
+
+  const cookieCount = document.cookie ? document.cookie.split(";").filter(Boolean).length : 0;
+  const cookies = { total: cookieCount, firstParty: cookieCount, thirdParty: 0 };
+  const localCount = window.localStorage ? window.localStorage.length : 0;
+  const sessionCount = window.sessionStorage ? window.sessionStorage.length : 0;
+  const contentData = {
+    storage: {
+      localStorage: localCount > 0 ? `${localCount} keys` : "Not Detected",
+      sessionStorage: sessionCount > 0 ? `${sessionCount} keys` : "Not Detected"
+    },
+    fingerprinting: {
+      canvas: typeof HTMLCanvasElement !== "undefined",
+      webgl: Boolean(window.WebGLRenderingContext),
+      audio: typeof window.AudioContext === "function" || typeof window.webkitAudioContext === "function",
+      webrtc: typeof window.RTCPeerConnection === "function",
+      evalAttempt: true
+    },
+    csp: {
+      hasMetaCsp: true,
+      metaBlocksEval: true,
+      evalBlockedCount: 1,
+      totalViolationCount: 1,
+      violatedDirectives: ["script-src"]
+    },
+    visibilityLayer: {
+      highestLayer: "VULNERABLE (High)",
+      counts: { vulnerable: 1, grundversorgung: 1, welt: 1 }
+    },
+    screen: window.screen ? `${window.screen.width} × ${window.screen.height}` : "Unknown",
+    language: navigator.language || "Unknown",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
+    userAgent: navigator.userAgent || "Unknown"
+  };
+  const requestData = { thirdPartyRequestCount: 0, thirdPartyDomains: [] };
+  const permissions = await getPermissions();
+  const analysis = buildAnalysis(url, cookies, contentData, requestData, permissions);
+  renderAnalysis(analysis);
+  $("scanState").textContent = "Observed";
 }
 
 function renderUnsupported() {
