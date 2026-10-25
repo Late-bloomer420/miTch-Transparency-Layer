@@ -4,7 +4,8 @@ const fingerprintLabels = {
   canvas: "Canvas API",
   webgl: "WebGL",
   audio: "AudioContext",
-  webrtc: "WebRTC"
+  webrtc: "WebRTC",
+  evalAttempt: "Dynamic eval() Attempt"
 };
 
 const permissionQueries = [
@@ -71,7 +72,9 @@ async function getContentData(tabId) {
   } catch {
     return {
       storage: { localStorage: "Unknown", sessionStorage: "Unknown" },
-      fingerprinting: { canvas: false, webgl: false, audio: false, webrtc: false },
+      fingerprinting: { canvas: false, webgl: false, audio: false, webrtc: false, evalAttempt: false },
+      csp: { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] },
+      visibilityLayer: { highestLayer: "Unknown", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 } },
       screen: null,
       language: null,
       timezone: null,
@@ -104,6 +107,8 @@ async function getPermissions() {
 
 function buildAnalysis(url, cookies, contentData, requestData, permissions) {
   const fingerprinting = contentData.fingerprinting || {};
+  const csp = contentData.csp || { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] };
+  const visibilityLayer = contentData.visibilityLayer || { highestLayer: "None Detected", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 } };
   const detectedFingerprintCount = Object.values(fingerprinting).filter(Boolean).length;
   const grantedPermissionCount = Object.values(permissions).filter((state) => state === "Granted").length;
   const promptPermissionCount = Object.values(permissions).filter((state) => state === "Prompt").length;
@@ -122,6 +127,8 @@ function buildAnalysis(url, cookies, contentData, requestData, permissions) {
     cookies,
     storage: contentData.storage || { localStorage: "Unknown", sessionStorage: "Unknown" },
     fingerprinting,
+    csp,
+    visibilityLayer,
     permissions,
     requestData,
     score,
@@ -155,7 +162,11 @@ function renderAnalysis(analysis) {
   renderSignals("fingerprintList", Object.entries(fingerprintLabels).map(([key, label]) => ({
     name: label,
     state: analysis.fingerprinting[key] ? "Detected" : "Not Detected",
-    meta: "This technique may enable browser fingerprinting."
+    meta: key === "evalAttempt"
+      ? (analysis.csp.metaBlocksEval
+          ? "Blocked dynamic string evaluation (CSP active)."
+          : "Passive CSP violation listener for dynamic eval() calls.")
+      : "This technique may enable browser fingerprinting."
   })));
 
   renderSignals("permissionList", permissionQueries.map((item) => ({
@@ -208,8 +219,17 @@ function renderReport(analysis) {
   if ((analysis.requestData.thirdPartyRequestCount || 0) > 0) observed.push(`${analysis.requestData.thirdPartyRequestCount} third-party browser requests observed`);
   if (analysis.storage.localStorage !== "Not Detected") observed.push(`localStorage usage: ${analysis.storage.localStorage}`);
   if (analysis.storage.sessionStorage !== "Not Detected") observed.push(`sessionStorage usage: ${analysis.storage.sessionStorage}`);
+  if (analysis.csp && analysis.csp.metaBlocksEval) {
+    observed.push("Page CSP blocks dynamic eval() execution");
+  }
+  if (analysis.csp && analysis.csp.evalBlockedCount > 0) {
+    observed.push(`${analysis.csp.evalBlockedCount} blocked eval() / script-src CSP violation(s) observed`);
+  }
+  if (analysis.visibilityLayer && analysis.visibilityLayer.highestLayer && analysis.visibilityLayer.highestLayer !== "None Detected" && analysis.visibilityLayer.highestLayer !== "Unknown") {
+    observed.push(`Form input sensitivity (AskMI Visibility Layer): ${analysis.visibilityLayer.highestLayer}`);
+  }
   Object.entries(fingerprintLabels).forEach(([key, label]) => {
-    if (analysis.fingerprinting[key]) observed.push(`${label} surface detected`);
+    if (key !== "evalAttempt" && analysis.fingerprinting[key]) observed.push(`${label} surface detected`);
   });
   permissionQueries.forEach((item) => {
     const state = analysis.permissions[item.key];
