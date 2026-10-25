@@ -59,11 +59,20 @@
         </article>
       </section>
 
+      <section class="panel" aria-labelledby="third-party-title">
+        <div class="section-head">
+          <h2 id="third-party-title">Third-Party Domains Contacted</h2>
+          <span id="thirdPartyDomainCount" class="status-pill">0 domains</span>
+        </div>
+        <p class="guardrail">External domains contacted by this tab, classified by known tracker/analytics vs. external resource.</p>
+        <div id="thirdPartyDomainList" class="signal-list"></div>
+      </section>
+
       <section class="panel" aria-labelledby="fingerprint-title">
         <div class="section-head">
           <h2 id="fingerprint-title">Fingerprinting Surface Detection</h2>
         </div>
-        <p class="guardrail">Detected browser surfaces may enable browser fingerprinting. This does not mean tracking occurred.</p>
+        <p class="guardrail">Active calls to browser fingerprinting APIs observed on this page.</p>
         <div id="fingerprintList" class="signal-list"></div>
       </section>
 

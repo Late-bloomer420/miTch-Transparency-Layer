@@ -1,12 +1,23 @@
 const $ = (id) => document.getElementById(id);
 
 const fingerprintLabels = {
-  canvas: "Canvas API",
-  webgl: "WebGL",
-  audio: "AudioContext",
-  webrtc: "WebRTC",
+  canvas: "Canvas Readout (toDataURL / getImageData)",
+  webgl: "WebGL Renderer / Pixel Readout",
+  audio: "AudioContext Oscillator",
+  webrtc: "WebRTC PeerConnection",
   evalAttempt: "Dynamic eval() Attempt"
 };
+
+const KNOWN_TRACKER_PATTERNS = [
+  { pattern: /google-analytics\.com|googletagmanager\.com|analytics\.google\.com/i, category: "Analytics Tracker" },
+  { pattern: /doubleclick\.net|googlesyndication\.com|googleadservices\.com|adservice\.google/i, category: "Ad-Tech Tracker" },
+  { pattern: /facebook\.net|facebook\.com|fbcdn\.net/i, category: "Social / Ad Tracker" },
+  { pattern: /clarity\.ms|hotjar\.com|fullstory\.com|mouseflow\.com|logrocket\.com/i, category: "Session Replay" },
+  { pattern: /mixpanel\.com|segment\.io|segment\.com|amplitude\.com|posthog\.com|plausible\.io/i, category: "Product Telemetry" },
+  { pattern: /criteo\.com|taboola\.com|outbrain\.com|adnxs\.com|rubiconproject\.com|pubmatic\.com/i, category: "Ad Exchange" },
+  { pattern: /tiktok\.com|byteoversea\.com|snapchat\.com|sc-static\.net|linkedin\.com|licdn\.com|bat\.bing\.com/i, category: "Attribution Pixel" },
+  { pattern: /sentry\.io|datadoghq\.com|newrelic\.com|nr-data\.net|bugsnag\.com/i, category: "Error / RUM Telemetry" }
+];
 
 const permissionQueries = [
   { key: "geolocation", label: "Geolocation", name: "geolocation" },
@@ -57,7 +68,7 @@ async function init() {
 
 async function initStandalonePreview() {
   const url = new URL(window.location.href);
-  $("domain").textContent = url.hostname;
+  $("domain").textContent = url.hostname || "localhost";
   $("protocol").textContent = url.protocol.replace(":", "").toUpperCase();
   $("pageTitle").textContent = "AskMI Wallet / Live Preview";
 
@@ -71,22 +82,22 @@ async function initStandalonePreview() {
       sessionStorage: sessionCount > 0 ? `${sessionCount} keys` : "Not Detected"
     },
     fingerprinting: {
-      canvas: typeof HTMLCanvasElement !== "undefined",
-      webgl: Boolean(window.WebGLRenderingContext),
-      audio: typeof window.AudioContext === "function" || typeof window.webkitAudioContext === "function",
-      webrtc: typeof window.RTCPeerConnection === "function",
-      evalAttempt: true
+      canvas: false,
+      webgl: false,
+      audio: false,
+      webrtc: false,
+      evalAttempt: false
     },
     csp: {
       hasMetaCsp: true,
       metaBlocksEval: true,
-      evalBlockedCount: 1,
-      totalViolationCount: 1,
-      violatedDirectives: ["script-src"]
+      evalBlockedCount: 0,
+      totalViolationCount: 0,
+      violatedDirectives: []
     },
     visibilityLayer: {
-      highestLayer: "VULNERABLE (High)",
-      counts: { vulnerable: 1, grundversorgung: 1, welt: 1 }
+      highestLayer: "None Detected",
+      counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }
     },
     screen: window.screen ? `${window.screen.width} × ${window.screen.height}` : "Unknown",
     language: navigator.language || "Unknown",
@@ -156,6 +167,15 @@ async function getPermissions() {
   return results;
 }
 
+function classifyThirdPartyDomain(domain) {
+  for (const rule of KNOWN_TRACKER_PATTERNS) {
+    if (rule.pattern.test(domain)) {
+      return { isTracker: true, category: rule.category, stateLabel: "Tracker", stateClass: "detected" };
+    }
+  }
+  return { isTracker: false, category: "External Resource / CDN", stateLabel: "External", stateClass: "prompt" };
+}
+
 function buildAnalysis(url, cookies, contentData, requestData, permissions) {
   const fingerprinting = contentData.fingerprinting || {};
   const csp = contentData.csp || { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] };
@@ -163,11 +183,17 @@ function buildAnalysis(url, cookies, contentData, requestData, permissions) {
   const detectedFingerprintCount = Object.values(fingerprinting).filter(Boolean).length;
   const grantedPermissionCount = Object.values(permissions).filter((state) => state === "Granted").length;
   const promptPermissionCount = Object.values(permissions).filter((state) => state === "Prompt").length;
-  const thirdPartyRequestCount = requestData.thirdPartyRequestCount || 0;
+  const thirdPartyDomains = (requestData && requestData.thirdPartyDomains) || [];
+  const thirdPartyRequestCount = requestData.thirdPartyRequestCount || thirdPartyDomains.length || 0;
+  const classifiedDomains = thirdPartyDomains.map((domain) => ({
+    domain,
+    ...classifyThirdPartyDomain(domain)
+  }));
+  const knownTrackerCount = classifiedDomains.filter((d) => d.isTracker).length;
 
   const score = Math.min(100, Math.round(
     Math.min(30, cookies.total * 2) +
-    Math.min(25, thirdPartyRequestCount * 3) +
+    Math.min(25, thirdPartyRequestCount * 3 + knownTrackerCount * 4) +
     detectedFingerprintCount * 10 +
     grantedPermissionCount * 8 +
     promptPermissionCount * 2
@@ -181,7 +207,13 @@ function buildAnalysis(url, cookies, contentData, requestData, permissions) {
     csp,
     visibilityLayer,
     permissions,
-    requestData,
+    requestData: {
+      ...requestData,
+      thirdPartyRequestCount,
+      thirdPartyDomains,
+      classifiedDomains,
+      knownTrackerCount
+    },
     score,
     category: scoreCategory(score),
     context: contentData
@@ -210,6 +242,8 @@ function renderAnalysis(analysis) {
   $("localStorageUsage").textContent = analysis.storage.localStorage;
   $("sessionStorageUsage").textContent = analysis.storage.sessionStorage;
 
+  renderThirdPartyDomains(analysis.requestData);
+
   renderSignals("fingerprintList", Object.entries(fingerprintLabels).map(([key, label]) => ({
     name: label,
     state: analysis.fingerprinting[key] ? "Detected" : "Not Detected",
@@ -217,7 +251,7 @@ function renderAnalysis(analysis) {
       ? (analysis.csp.metaBlocksEval
           ? "Blocked dynamic string evaluation (CSP active)."
           : "Passive CSP violation listener for dynamic eval() calls.")
-      : "This technique may enable browser fingerprinting."
+      : "Active API invocation observed on this page."
   })));
 
   renderSignals("permissionList", permissionQueries.map((item) => ({
@@ -230,8 +264,37 @@ function renderAnalysis(analysis) {
   renderReport(analysis);
 }
 
+function renderThirdPartyDomains(requestData) {
+  const countEl = $("thirdPartyDomainCount");
+  const listEl = $("thirdPartyDomainList");
+  if (!countEl || !listEl) return;
+
+  const domains = (requestData && requestData.classifiedDomains) || [];
+  const trackerCount = (requestData && requestData.knownTrackerCount) || 0;
+  countEl.textContent = trackerCount > 0
+    ? `${domains.length} domains (${trackerCount} tracker)`
+    : `${domains.length} domain${domains.length === 1 ? "" : "s"}`;
+
+  if (domains.length === 0) {
+    renderSignals("thirdPartyDomainList", [{
+      name: "Zero third-party domains contacted",
+      state: "Not Detected",
+      meta: "All observed requests stayed on the first-party origin."
+    }]);
+    return;
+  }
+
+  renderSignals("thirdPartyDomainList", domains.slice(0, 15).map((item) => ({
+    name: item.domain,
+    state: item.isTracker ? "Detected" : "Prompt",
+    stateText: item.stateLabel,
+    meta: item.category
+  })));
+}
+
 function renderSignals(containerId, signals) {
   const container = $(containerId);
+  if (!container) return;
   container.replaceChildren(...signals.map((signal) => {
     const row = document.createElement("div");
     row.className = "signal-item";
@@ -246,8 +309,9 @@ function renderSignals(containerId, signals) {
     text.append(name, meta);
 
     const state = document.createElement("span");
-    state.className = `signal-state state-${signal.state.toLowerCase().replace(/\s+/g, "-")}`;
-    state.textContent = signal.state;
+    const cssKey = signal.state.toLowerCase().replace(/\s+/g, "-");
+    state.className = `signal-state state-${cssKey}`;
+    state.textContent = signal.stateText || signal.state;
     row.append(text, state);
     return row;
   }));
@@ -267,7 +331,12 @@ function renderReport(analysis) {
   const observed = [];
   if (analysis.cookies.total > 0) observed.push(`${analysis.cookies.total} cookies detected`);
   if (analysis.cookies.thirdParty > 0) observed.push(`${analysis.cookies.thirdParty} third-party cookies detectable for this page`);
-  if ((analysis.requestData.thirdPartyRequestCount || 0) > 0) observed.push(`${analysis.requestData.thirdPartyRequestCount} third-party browser requests observed`);
+  if ((analysis.requestData.thirdPartyRequestCount || 0) > 0) {
+    const trackerSuffix = analysis.requestData.knownTrackerCount > 0
+      ? ` (${analysis.requestData.knownTrackerCount} known tracker domain(s))`
+      : "";
+    observed.push(`${analysis.requestData.thirdPartyRequestCount} third-party browser requests observed${trackerSuffix}`);
+  }
   if (analysis.storage.localStorage !== "Not Detected") observed.push(`localStorage usage: ${analysis.storage.localStorage}`);
   if (analysis.storage.sessionStorage !== "Not Detected") observed.push(`sessionStorage usage: ${analysis.storage.sessionStorage}`);
   if (analysis.csp && analysis.csp.metaBlocksEval) {
@@ -280,7 +349,7 @@ function renderReport(analysis) {
     observed.push(`Form input sensitivity (AskMI Visibility Layer): ${analysis.visibilityLayer.highestLayer}`);
   }
   Object.entries(fingerprintLabels).forEach(([key, label]) => {
-    if (key !== "evalAttempt" && analysis.fingerprinting[key]) observed.push(`${label} surface detected`);
+    if (key !== "evalAttempt" && analysis.fingerprinting[key]) observed.push(`${label} call observed`);
   });
   permissionQueries.forEach((item) => {
     const state = analysis.permissions[item.key];
