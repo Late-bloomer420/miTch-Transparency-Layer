@@ -1,5 +1,7 @@
 const $ = (id) => document.getElementById(id);
 
+let latestAnalysis = null;
+
 const fingerprintLabels = {
   canvas: "Canvas Readout (toDataURL / getImageData)",
   webgl: "WebGL Renderer / Pixel Readout",
@@ -27,7 +29,91 @@ const permissionQueries = [
   { key: "clipboard", label: "Clipboard", name: "clipboard-read" }
 ];
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", () => {
+  bindExportButtons();
+  init();
+});
+
+function bindExportButtons() {
+  const mdBtn = $("copyMarkdownBtn");
+  const jsonBtn = $("copyJsonBtn");
+  if (mdBtn) {
+    mdBtn.addEventListener("click", () => copySurfaceReport("markdown"));
+  }
+  if (jsonBtn) {
+    jsonBtn.addEventListener("click", () => copySurfaceReport("json"));
+  }
+}
+
+async function copySurfaceReport(format) {
+  if (!latestAnalysis) return;
+  const statusEl = $("exportStatus");
+  try {
+    const text = format === "json"
+      ? buildJsonReceipt(latestAnalysis)
+      : buildMarkdownReport(latestAnalysis);
+    await navigator.clipboard.writeText(text);
+    if (statusEl) {
+      statusEl.textContent = format === "json" ? "JSON Copied ✓" : "Markdown Copied ✓";
+      setTimeout(() => {
+        statusEl.textContent = "";
+      }, 2200);
+    }
+  } catch {
+    if (statusEl) {
+      statusEl.textContent = "Copy failed";
+    }
+  }
+}
+
+function buildJsonReceipt(analysis) {
+  const receipt = {
+    schema: "askmi.transparency.surface-receipt.v0.2",
+    capturedAt: new Date().toISOString(),
+    website: {
+      domain: analysis.url ? analysis.url.hostname : "unknown",
+      protocol: analysis.url ? analysis.url.protocol.replace(":", "").toUpperCase() : "UNKNOWN",
+      href: analysis.url ? analysis.url.href : null
+    },
+    score: {
+      value: analysis.score,
+      category: analysis.category
+    },
+    cookies: analysis.cookies,
+    storage: analysis.storage,
+    visibilityLayer: analysis.visibilityLayer,
+    thirdPartyRequests: {
+      count: analysis.requestData.thirdPartyRequestCount,
+      knownTrackerCount: analysis.requestData.knownTrackerCount,
+      domains: analysis.requestData.classifiedDomains
+    },
+    fingerprinting: analysis.fingerprinting,
+    csp: analysis.csp,
+    permissions: analysis.permissions
+  };
+  return JSON.stringify(receipt, null, 2);
+}
+
+function buildMarkdownReport(analysis) {
+  const host = (analysis.url && analysis.url.hostname) || "unknown";
+  const proto = (analysis.url && analysis.url.protocol.replace(":", "").toUpperCase()) || "UNKNOWN";
+  const lines = [
+    `# miTch Transparency Layer — Surface Report`,
+    `- **Captured:** ${new Date().toISOString()}`,
+    `- **Domain:** \`${host}\` (${proto})`,
+    `- **Surface Score:** **${analysis.score}/100** (${analysis.category})`,
+    `- **AskMI Visibility Layer:** \`${(analysis.visibilityLayer && analysis.visibilityLayer.highestLayer) || "None Detected"}\``,
+    `- **Cookies:** ${analysis.cookies.total} total (${analysis.cookies.firstParty} first-party, ${analysis.cookies.thirdParty} third-party)`,
+    `- **Storage:** localStorage=${analysis.storage.localStorage}, sessionStorage=${analysis.storage.sessionStorage}`,
+    `- **Third-Party Domains (${analysis.requestData.thirdPartyRequestCount}):** ${
+      analysis.requestData.thirdPartyDomains.length > 0
+        ? analysis.requestData.thirdPartyDomains.join(", ")
+        : "None"
+    }`,
+    `- **CSP Eval Protection:** ${analysis.csp && analysis.csp.metaBlocksEval ? "Active (blocks eval)" : "Not detected in meta"} (blocked violations: ${(analysis.csp && analysis.csp.evalBlockedCount) || 0})`
+  ];
+  return lines.join("\n");
+}
 
 async function init() {
   try {
@@ -237,6 +323,7 @@ function combineRequestData(backgroundData, contentData) {
 }
 
 function renderAnalysis(analysis) {
+  latestAnalysis = analysis;
   $("cookieTotal").textContent = analysis.cookies.total;
   $("firstPartyCookies").textContent = analysis.cookies.firstParty;
   $("thirdPartyCookies").textContent = analysis.cookies.thirdParty;

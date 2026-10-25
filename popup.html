@@ -91,7 +91,10 @@
       </section>
 
       <section class="panel report" aria-labelledby="report-title">
-        <h2 id="report-title">Three-Layer Report</h2>
+        <div class="section-head">
+          <h2 id="report-title">Three-Layer Report</h2>
+          <span id="exportStatus" class="export-status" aria-live="polite"></span>
+        </div>
         <div class="report-columns">
           <div>
             <h3>Observed Facts</h3>
@@ -105,6 +108,10 @@
             <h3>Unknown</h3>
             <ul id="unknowns"></ul>
           </div>
+        </div>
+        <div class="export-actions">
+          <button id="copyMarkdownBtn" type="button" class="action-btn">Copy Markdown Report</button>
+          <button id="copyJsonBtn" type="button" class="action-btn secondary">Copy JSON Receipt</button>
         </div>
       </section>
 
