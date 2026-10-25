@@ -11,11 +11,29 @@ const activeFingerprinting = {
   webrtc: false
 };
 
+let pushTimer = null;
+
+function scheduleSurfacePush() {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    try {
+      chrome.runtime.sendMessage({
+        type: "MITCH_PAGE_SURFACES",
+        payload: collectAllSurfaces()
+      });
+    } catch {
+      // Ignore when background worker is inactive
+    }
+  }, 250);
+}
+
 window.addEventListener("mitch:surface-observed", (event) => {
   try {
     const surface = event && event.detail && event.detail.surface;
     if (surface && Object.prototype.hasOwnProperty.call(activeFingerprinting, surface)) {
       activeFingerprinting[surface] = true;
+      scheduleSurfacePush();
     }
   } catch {
     // Ignore custom event errors
@@ -34,15 +52,28 @@ document.addEventListener("securitypolicyviolation", (event) => {
     ) {
       cspObservations.evalBlockedCount += 1;
     }
+    scheduleSurfacePush();
   } catch {
     // Ignore observer errors
   }
 });
 
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", scheduleSurfacePush, { once: true });
+} else {
+  scheduleSurfacePush();
+}
+window.addEventListener("load", scheduleSurfacePush, { once: true });
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || message.type !== "MITCH_COLLECT_SURFACES") return false;
 
-  sendResponse({
+  sendResponse(collectAllSurfaces());
+  return true;
+});
+
+function collectAllSurfaces() {
+  return {
     storage: collectStorage(),
     fingerprinting: collectFingerprintingSurfaces(),
     csp: collectCspSurface(),
@@ -52,10 +83,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     language: navigator.language || "Unknown",
     timezone: collectTimezone(),
     userAgent: navigator.userAgent || "Unknown"
-  });
-
-  return true;
-});
+  };
+}
 
 function collectStorage() {
   return {

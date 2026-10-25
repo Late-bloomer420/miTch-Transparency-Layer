@@ -18,6 +18,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "loading") {
     tabRequests.delete(tabId);
+    clearTabBadge(tabId);
   }
 });
 
@@ -32,8 +33,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message && message.type === "MITCH_PAGE_SURFACES" && sender.tab && sender.tab.id >= 0) {
-    const entry = getEntry(sender.tab.id);
+    const tabId = sender.tab.id;
+    const entry = getEntry(tabId);
     entry.pageSurfaces = message.payload || {};
+    if (
+      entry.pageSurfaces.requests &&
+      Array.isArray(entry.pageSurfaces.requests.thirdPartyDomains)
+    ) {
+      entry.pageSurfaces.requests.thirdPartyDomains.forEach((domain) => {
+        if (entry.thirdPartyDomains.size < MAX_DOMAINS_PER_TAB) {
+          entry.thirdPartyDomains.add(domain);
+        }
+      });
+    }
+    updateTabBadge(tabId);
     sendResponse({ ok: true });
     return true;
   }
@@ -60,6 +73,7 @@ function recordRequest(details) {
   if (entry.thirdPartyDomains.size < MAX_DOMAINS_PER_TAB) {
     entry.thirdPartyDomains.add(requestHost);
   }
+  updateTabBadge(details.tabId);
 }
 
 function getEntry(tabId) {
@@ -71,6 +85,46 @@ function getEntry(tabId) {
     });
   }
   return tabRequests.get(tabId);
+}
+
+function clearTabBadge(tabId) {
+  try {
+    chrome.action.setBadgeText({ tabId, text: "" });
+  } catch {
+    // Ignore if tab closed
+  }
+}
+
+function updateTabBadge(tabId) {
+  try {
+    const entry = tabRequests.get(tabId);
+    if (!entry) return;
+
+    const surfaces = entry.pageSurfaces || {};
+    const fp = surfaces.fingerprinting || {};
+    const fpCount = Object.values(fp).filter(Boolean).length;
+    const thirdPartyCount = Math.max(entry.thirdPartyCount, entry.thirdPartyDomains.size);
+    const vis = surfaces.visibilityLayer || {};
+    const highestLayer = vis.highestLayer || "None Detected";
+
+    const estimatedScore = Math.min(
+      100,
+      Math.round(Math.min(25, thirdPartyCount * 3) + fpCount * 10 + (highestLayer === "VULNERABLE (High)" ? 25 : highestLayer === "GRUNDVERSORGUNG (Medium)" ? 10 : 0))
+    );
+
+    let color = "#46d9b5"; // Green (Low)
+    if (highestLayer === "VULNERABLE (High)" || estimatedScore > 50) {
+      color = "#ff6f8f"; // Red (High / Vulnerable)
+    } else if (highestLayer === "GRUNDVERSORGUNG (Medium)" || estimatedScore > 25 || thirdPartyCount > 0) {
+      color = "#f1c65b"; // Amber (Moderate)
+    }
+
+    const text = estimatedScore > 0 ? String(estimatedScore) : "0";
+    chrome.action.setBadgeBackgroundColor({ tabId, color });
+    chrome.action.setBadgeText({ tabId, text });
+  } catch {
+    // Ignore badge errors on closed tabs
+  }
 }
 
 function sameSite(a, b) {
