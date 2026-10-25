@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "miTch Transparency Layer",
   "short_name": "miTch TL",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shows browser-visible website surfaces: observed facts, potential access, and unknown server-side behavior.",
   "homepage_url": "https://late-bloomer420.github.io/miTch-Transparency-Layer/",
   "action": {
@@ -19,6 +19,17 @@
     "service_worker": "background.js"
   },
   "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "page-observer.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": [
         "http://*/*",

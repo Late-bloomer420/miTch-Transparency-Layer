@@ -4,6 +4,24 @@ const cspObservations = {
   violatedDirectives: new Set()
 };
 
+const activeFingerprinting = {
+  canvas: false,
+  webgl: false,
+  audio: false,
+  webrtc: false
+};
+
+window.addEventListener("mitch:surface-observed", (event) => {
+  try {
+    const surface = event && event.detail && event.detail.surface;
+    if (surface && Object.prototype.hasOwnProperty.call(activeFingerprinting, surface)) {
+      activeFingerprinting[surface] = true;
+    }
+  } catch {
+    // Ignore custom event errors
+  }
+});
+
 document.addEventListener("securitypolicyviolation", (event) => {
   try {
     cspObservations.totalViolationCount += 1;
@@ -56,12 +74,23 @@ function describeStorage(storage) {
   }
 }
 
+function hasObservedAttr(surface) {
+  try {
+    return Boolean(
+      document.documentElement &&
+      document.documentElement.getAttribute(`data-mitch-fp-${surface}`) === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
 function collectFingerprintingSurfaces() {
   return {
-    canvas: detectCanvas(),
-    webgl: detectWebGL(),
-    audio: typeof window.AudioContext === "function" || typeof window.webkitAudioContext === "function",
-    webrtc: typeof window.RTCPeerConnection === "function" || typeof window.webkitRTCPeerConnection === "function",
+    canvas: activeFingerprinting.canvas || hasObservedAttr("canvas"),
+    webgl: activeFingerprinting.webgl || hasObservedAttr("webgl"),
+    audio: activeFingerprinting.audio || hasObservedAttr("audio"),
+    webrtc: activeFingerprinting.webrtc || hasObservedAttr("webrtc"),
     evalAttempt: cspObservations.evalBlockedCount > 0
   };
 }
@@ -100,7 +129,6 @@ function collectVisibilityLayer() {
     grundversorgung: 0,
     welt: 0
   };
-  const matchedClaims = [];
 
   try {
     const fields = document.querySelectorAll("input, select, textarea");
@@ -126,13 +154,10 @@ function collectVisibilityLayer() {
         )
       ) {
         counts.vulnerable += 1;
-        if (matchedClaims.length < 6) matchedClaims.push("VULNERABLE (High)");
       } else if (/birth|dob|age|bday|phone|tel|address|street|postal|zip|school|education/.test(token)) {
         counts.grundversorgung += 1;
-        if (matchedClaims.length < 6) matchedClaims.push("GRUNDVERSORGUNG (Medium)");
       } else if (/name|given|family|email|consent|public/.test(token)) {
         counts.welt += 1;
-        if (matchedClaims.length < 6) matchedClaims.push("WELT (Low)");
       }
     });
   } catch {
@@ -176,26 +201,6 @@ function collectVisibleRequests() {
       thirdPartyRequestCount: 0,
       thirdPartyDomains: []
     };
-  }
-}
-
-function detectCanvas() {
-  try {
-    return typeof HTMLCanvasElement !== "undefined" && typeof HTMLCanvasElement.prototype.getContext === "function";
-  } catch {
-    return false;
-  }
-}
-
-function detectWebGL() {
-  try {
-    const canvas = document.createElement("canvas");
-    return Boolean(
-      window.WebGLRenderingContext &&
-      (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
-    );
-  } catch {
-    return false;
   }
 }
 
