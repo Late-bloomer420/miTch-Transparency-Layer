@@ -6,6 +6,19 @@ Core principle:
 
 > We show what is technically observable and technically possible. We do not claim what happens on remote servers.
 
+## Ecosystem role and status
+
+The extension is the AskMI ecosystem's experimental **Visibility & Evidence Companion**:
+
+- **VeriCred** issues credentials.
+- **miTch / AskMI** evaluates policy, mediates consent, and presents proofs.
+- **Transparency Layer** observes browser-visible surfaces and explains possible data-minimising alternatives.
+- **AskMI Control** monitors repository and engineering posture.
+
+Transparency observations, Surface Scores, and Proof Bridge suggestions are advisory. They never authorize, deny, or influence credential disclosure and are not compliance, fraud, trust, or safety verdicts.
+
+Current status: **v0.3.0 experimental/local-only**. It is not certified, independently audited, or established as production-ready. The evidence-gated v0.4 programme is tracked in [issue #20](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20).
+
 ## Features
 
 - Current website detection: domain, protocol, and page title
@@ -45,13 +58,34 @@ When a webpage form requests over-collected personal attributes (for example, a 
 3. Select Load unpacked.
 4. Choose this repository folder.
 
+## Tests
+
+Run the current pure Proof Bridge tests with:
+
+```bash
+node --test test/*.test.mjs
+```
+
+This suite does not yet cover the full receipt, score, browser-observer, permission, or dynamic-page surface. That expansion is tracked in [#14](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/14), [#15](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/15), and [#17](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/17).
+
+## Architecture and roadmap
+
+- [Ecosystem role and authority boundaries](docs/ECOSYSTEM_ROLE_AND_BOUNDARIES.md)
+- [Transparency Surface Receipt v1 draft](docs/TRANSPARENCY_RECEIPT_V1.md)
+- [Evidence-gated v0.4 product roadmap](docs/PRODUCT_ROADMAP_V04.md)
+- [v0.4 programme tracker](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20)
+- [v0.3 Proof Bridge plan](docs/UPGRADE_PLAN_V03.md)
+- [v0.2 observation upgrade plan](docs/UPGRADE_PLAN_V02.md)
+
 ## Release Package
 
-The Chrome Web Store upload package is available at:
+The repository currently contains the historical package:
 
 ```text
 release/mitch-transparency-layer-v0.1.zip
 ```
+
+It does **not** represent the current v0.3 source and must not be uploaded as the current release. A revision-bound v0.3 package, test record, and release checklist are tracked in [#14](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/14).
 
 ## Privacy Policy
 
