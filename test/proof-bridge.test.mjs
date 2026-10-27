@@ -8,7 +8,8 @@ const {
   CANONICAL_CLAIMS,
   classifyFieldDescriptor,
   evaluateFieldsForVisibilityAndProof,
-  buildProofSuggestionPayload
+  buildProofSuggestionPayload,
+  buildProofSuggestionMarkdown
 } = require("../proof-bridge.js");
 
 test("Item 6 — pins canonical contractVersion 1.0.0 and EUDI claim names", () => {
@@ -53,29 +54,36 @@ test("Item 6 — fail-closed: generic date, health, financial, password, and con
   }
 });
 
-test("Item 6 — evaluateFieldsForVisibilityAndProof aggregates proofSuggestion when DOB over-collection is present", () => {
+test("Item 7 — buildProofSuggestionPayload and buildProofSuggestionMarkdown emit exact v0.3 schema", () => {
   const result = evaluateFieldsForVisibilityAndProof([
     { name: "email", type: "email" },
     { name: "birth_date", type: "date" }
   ]);
-
-  assert.equal(result.highestLayer, "GRUNDVERSORGUNG (Medium)");
-  assert.ok(result.proofSuggestion);
-  assert.equal(result.proofSuggestion.contractVersion, "1.0.0");
-  assert.deepEqual(result.proofSuggestion.observedOverCollection, ["birthdate"]);
-  assert.deepEqual(result.proofSuggestion.suggestedMinimalClaims, ["age_over_18"]);
 
   const payload = buildProofSuggestionPayload(result.proofSuggestion, {
     origin: "https://shop.example",
     title: "Checkout"
   });
   assert.ok(payload && payload.askmiProofSuggestion);
+  assert.deepEqual(Object.keys(payload.askmiProofSuggestion), [
+    "version",
+    "contractVersion",
+    "generatedAt",
+    "page",
+    "observedOverCollection",
+    "suggestedMinimalClaims",
+    "rationale",
+    "note"
+  ]);
   assert.equal(payload.askmiProofSuggestion.version, "0.3.0");
   assert.equal(payload.askmiProofSuggestion.contractVersion, "1.0.0");
   assert.deepEqual(payload.askmiProofSuggestion.observedOverCollection, ["birthdate"]);
   assert.deepEqual(payload.askmiProofSuggestion.suggestedMinimalClaims, ["age_over_18"]);
-  assert.deepEqual(payload.askmiProofSuggestion.page, {
+
+  const md = buildProofSuggestionMarkdown(result.proofSuggestion, {
     origin: "https://shop.example",
     title: "Checkout"
   });
+  assert.ok(md && md.includes("# Suggested minimal AskMI proof"));
+  assert.ok(md.includes("`age_over_18`"));
 });

@@ -283,6 +283,43 @@ dd,
   color: #84e4a5;
 }
 
+.proof-bridge-card {
+  margin-top: 12px;
+  border: 1px solid rgba(70, 217, 181, 0.34);
+  border-radius: 8px;
+  padding: 12px;
+  background: linear-gradient(145deg, rgba(70, 217, 181, 0.11), rgba(22, 34, 50, 0.72));
+}
+
+.proof-bridge-head {
+  margin-bottom: 6px;
+}
+
+.proof-bridge-head h3 {
+  margin-bottom: 0;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.proof-bridge-body {
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.proof-bridge-body code {
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.proof-bridge-actions {
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
 .report-columns {
   display: grid;
   grid-template-columns: 1fr;

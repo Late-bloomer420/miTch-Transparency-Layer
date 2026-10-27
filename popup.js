@@ -31,6 +31,7 @@ const permissionQueries = [
 
 document.addEventListener("DOMContentLoaded", () => {
   bindExportButtons();
+  bindProofBridgeButtons();
   init();
 });
 
@@ -42,6 +43,60 @@ function bindExportButtons() {
   }
   if (jsonBtn) {
     jsonBtn.addEventListener("click", () => copySurfaceReport("json"));
+  }
+}
+
+function bindProofBridgeButtons() {
+  const jsonBtn = $("copyProofJsonBtn");
+  const mdBtn = $("copyProofMarkdownBtn");
+  if (jsonBtn) {
+    jsonBtn.addEventListener("click", () => copyProofSuggestion("json"));
+  }
+  if (mdBtn) {
+    mdBtn.addEventListener("click", () => copyProofSuggestion("markdown"));
+  }
+}
+
+async function copyProofSuggestion(format) {
+  if (
+    !latestAnalysis ||
+    !latestAnalysis.visibilityLayer ||
+    !latestAnalysis.visibilityLayer.proofSuggestion
+  ) {
+    return;
+  }
+
+  const statusEl = $("proofBridgeStatus");
+  const pageContext = {
+    origin: latestAnalysis.url ? latestAnalysis.url.origin : "unknown",
+    title: $("pageTitle") ? $("pageTitle").textContent : "Untitled page"
+  };
+
+  try {
+    const suggestion = latestAnalysis.visibilityLayer.proofSuggestion;
+    const bridge = globalThis.MitchProofBridge;
+    const text = format === "json"
+      ? JSON.stringify(
+          bridge
+            ? bridge.buildProofSuggestionPayload(suggestion, pageContext)
+            : { askmiProofSuggestion: suggestion },
+          null,
+          2
+        )
+      : (bridge && bridge.buildProofSuggestionMarkdown(suggestion, pageContext)) || "";
+
+    if (!text) return;
+    await navigator.clipboard.writeText(text);
+    if (statusEl) {
+      statusEl.textContent = format === "json" ? "Proof JSON Copied ✓" : "Proof Markdown Copied ✓";
+      setTimeout(() => {
+        statusEl.textContent = "";
+      }, 2200);
+    }
+  } catch {
+    if (statusEl) {
+      statusEl.textContent = "Copy failed";
+    }
   }
 }
 
@@ -184,7 +239,8 @@ async function initStandalonePreview() {
     visibilityLayer: {
       highestLayer: "None Detected",
       counts: { vulnerable: 0, grundversorgung: 0, welt: 0 },
-      findings: []
+      findings: [],
+      proofSuggestion: null
     },
     screen: window.screen ? `${window.screen.width} × ${window.screen.height}` : "Unknown",
     language: navigator.language || "Unknown",
@@ -223,7 +279,7 @@ async function getContentData(tabId) {
       storage: { localStorage: "Unknown", sessionStorage: "Unknown" },
       fingerprinting: { canvas: false, webgl: false, audio: false, webrtc: false, evalAttempt: false },
       csp: { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] },
-      visibilityLayer: { highestLayer: "Unknown", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }, findings: [] },
+      visibilityLayer: { highestLayer: "Unknown", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }, findings: [], proofSuggestion: null },
       screen: null,
       language: null,
       timezone: null,
@@ -266,7 +322,7 @@ function classifyThirdPartyDomain(domain) {
 function buildAnalysis(url, cookies, contentData, requestData, permissions) {
   const fingerprinting = contentData.fingerprinting || {};
   const csp = contentData.csp || { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] };
-  const visibilityLayer = contentData.visibilityLayer || { highestLayer: "None Detected", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }, findings: [] };
+  const visibilityLayer = contentData.visibilityLayer || { highestLayer: "None Detected", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }, findings: [], proofSuggestion: null };
   const detectedFingerprintCount = Object.values(fingerprinting).filter(Boolean).length;
   const grantedPermissionCount = Object.values(permissions).filter((state) => state === "Granted").length;
   const promptPermissionCount = Object.values(permissions).filter((state) => state === "Prompt").length;
@@ -356,10 +412,21 @@ function renderAnalysis(analysis) {
 function renderVisibilityLayer(visibilityLayer) {
   const badgeEl = $("visibilityLayerBadge");
   const listEl = $("visibilityLayerList");
+  const bridgeCard = $("proofBridgeCard");
   if (!badgeEl || !listEl) return;
 
   const highest = (visibilityLayer && visibilityLayer.highestLayer) || "None Detected";
   badgeEl.textContent = highest;
+
+  const suggestion = visibilityLayer && visibilityLayer.proofSuggestion;
+  if (bridgeCard) {
+    const hasSuggestion = Boolean(
+      suggestion &&
+      Array.isArray(suggestion.suggestedMinimalClaims) &&
+      suggestion.suggestedMinimalClaims.length > 0
+    );
+    bridgeCard.hidden = !hasSuggestion;
+  }
 
   const findings = (visibilityLayer && visibilityLayer.findings) || [];
   if (findings.length === 0) {
@@ -463,6 +530,15 @@ function renderReport(analysis) {
   }
   if (analysis.visibilityLayer && analysis.visibilityLayer.highestLayer && analysis.visibilityLayer.highestLayer !== "None Detected" && analysis.visibilityLayer.highestLayer !== "Unknown") {
     observed.push(`Form input sensitivity (AskMI Visibility Layer): ${analysis.visibilityLayer.highestLayer}`);
+  }
+  if (
+    analysis.visibilityLayer &&
+    analysis.visibilityLayer.proofSuggestion &&
+    Array.isArray(analysis.visibilityLayer.proofSuggestion.suggestedMinimalClaims)
+  ) {
+    observed.push(
+      `AskMI Proof Bridge suggestion available: ${analysis.visibilityLayer.proofSuggestion.suggestedMinimalClaims.join(", ")}`
+    );
   }
   Object.entries(fingerprintLabels).forEach(([key, label]) => {
     if (key !== "evalAttempt" && analysis.fingerprinting[key]) observed.push(`${label} call observed`);

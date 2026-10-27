@@ -66,6 +66,20 @@
         </div>
         <p class="guardrail">Classifies form inputs on this page into WELT, GRUNDVERSORGUNG, or VULNERABLE without reading typed values.</p>
         <div id="visibilityLayerList" class="signal-list"></div>
+
+        <div id="proofBridgeCard" class="proof-bridge-card" hidden>
+          <div class="section-head proof-bridge-head">
+            <h3>Suggested minimal AskMI proof</h3>
+            <span id="proofBridgeStatus" class="export-status" aria-live="polite"></span>
+          </div>
+          <p id="proofBridgeBody" class="proof-bridge-body">
+            Instead of sharing your full date of birth, an AskMI <code>age_over_18</code> predicate proof is sufficient.
+          </p>
+          <div class="export-actions proof-bridge-actions">
+            <button id="copyProofJsonBtn" type="button" class="action-btn">Copy Proof Suggestion (JSON)</button>
+            <button id="copyProofMarkdownBtn" type="button" class="action-btn secondary">Copy human-readable Markdown</button>
+          </div>
+        </div>
       </section>
 
       <section class="panel" aria-labelledby="third-party-title">
@@ -119,6 +133,7 @@
         We show what is technically observable and technically possible. We do not claim what happens on remote servers.
       </footer>
     </main>
+    <script src="proof-bridge.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>
