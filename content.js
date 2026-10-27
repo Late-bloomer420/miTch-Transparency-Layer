@@ -148,124 +148,38 @@ function collectCspSurface() {
   }
 }
 
-const VISIBILITY_FIELD_RULES = [
-  {
-    key: "health",
-    pattern: /health|medical|diagnosis|prescription|blood|allerg|medication|ehds/i,
-    label: "Health / Medical Attribute",
-    layer: "VULNERABLE (High)",
-    state: "Detected",
-    hint: "GDPR Art. 9 Special Category (VULNERABLE). Use selective disclosure instead of raw medical forms."
-  },
-  {
-    key: "financial",
-    pattern: /iban|bic|cc-|credit|card|bank|salary|tax|ssn/i,
-    label: "Financial / Tax Identifier",
-    layer: "VULNERABLE (High)",
-    state: "Detected",
-    hint: "High-risk financial attribute (VULNERABLE). Verify relying-party trust before disclosure."
-  },
-  {
-    key: "secret",
-    pattern: /password|passcode|pin|secret/i,
-    label: "Shared Secret / Password Input",
-    layer: "VULNERABLE (High)",
-    state: "Detected",
-    hint: "Shared secret requested. Hardware-bound AskMI passkeys avoid server-stored passwords."
-  },
-  {
-    key: "dob",
-    pattern: /birth|dob|bday|dateofbirth|geburtsdatum/i,
-    label: "Full Date of Birth (birth_date)",
-    layer: "GRUNDVERSORGUNG (Medium)",
-    state: "Prompt",
-    hint: "Over-collection warning: Full DOB requested. An AskMI age >= 18 predicate proof suffices."
-  },
-  {
-    key: "contact",
-    pattern: /phone|tel|mobile|address|street|postal|zip|plz|wohnort/i,
-    label: "Address / Phone Contact",
-    layer: "GRUNDVERSORGUNG (Medium)",
-    state: "Prompt",
-    hint: "GRUNDVERSORGUNG attribute. Share only if physical delivery or direct contact is required."
-  },
-  {
-    key: "identity_basic",
-    pattern: /given_name|family_name|firstname|lastname|fullname|email|e-mail/i,
-    label: "Basic Identity / Email (WELT)",
-    layer: "WELT (Low)",
-    state: "Not Detected",
-    hint: "Standard Layer 0 (WELT) attribute. Pairwise pseudonymous identifiers prevent cross-site correlation."
-  }
-];
-
 /**
- * Passive DOM field inspection aligned with @askmi/layer-resolver VISIBILITY_LAYER_MAP.
+ * Passive DOM field inspection aligned with @askmi/layer-resolver VISIBILITY_LAYER_MAP
+ * and @askmi/shared-types claim-contract (via MitchProofBridge).
  * Never reads input values (.value) — only inspects field names/types/autocomplete tokens.
  */
 function collectVisibilityLayer() {
-  const counts = {
-    vulnerable: 0,
-    grundversorgung: 0,
-    welt: 0
-  };
-  const findingsByKey = new Map();
-
+  const descriptors = [];
   try {
     const fields = document.querySelectorAll("input, select, textarea");
     fields.forEach((el) => {
-      const type = (el.getAttribute("type") || "").toLowerCase();
-      if (type === "hidden" || type === "submit" || type === "button" || type === "reset") return;
-
-      const token = [
-        el.getAttribute("name"),
-        el.getAttribute("id"),
-        el.getAttribute("autocomplete"),
-        el.getAttribute("placeholder"),
-        el.getAttribute("aria-label"),
-        type
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      if (!token) return;
-
-      for (const rule of VISIBILITY_FIELD_RULES) {
-        if (rule.pattern.test(token)) {
-          if (rule.layer === "VULNERABLE (High)") counts.vulnerable += 1;
-          else if (rule.layer === "GRUNDVERSORGUNG (Medium)") counts.grundversorgung += 1;
-          else counts.welt += 1;
-
-          if (!findingsByKey.has(rule.key)) {
-            findingsByKey.set(rule.key, {
-              label: rule.label,
-              layer: rule.layer,
-              state: rule.state,
-              hint: rule.hint
-            });
-          }
-          break;
-        }
-      }
+      descriptors.push({
+        name: el.getAttribute("name"),
+        id: el.getAttribute("id"),
+        autocomplete: el.getAttribute("autocomplete"),
+        placeholder: el.getAttribute("placeholder"),
+        ariaLabel: el.getAttribute("aria-label"),
+        type: el.getAttribute("type")
+      });
     });
   } catch {
     // Ignore DOM access errors
   }
 
-  let highestLayer = "None Detected";
-  if (counts.vulnerable > 0) {
-    highestLayer = "VULNERABLE (High)";
-  } else if (counts.grundversorgung > 0) {
-    highestLayer = "GRUNDVERSORGUNG (Medium)";
-  } else if (counts.welt > 0) {
-    highestLayer = "WELT (Low)";
+  if (typeof globalThis.MitchProofBridge !== "undefined") {
+    return globalThis.MitchProofBridge.evaluateFieldsForVisibilityAndProof(descriptors);
   }
 
   return {
-    highestLayer,
-    counts,
-    findings: Array.from(findingsByKey.values())
+    highestLayer: "None Detected",
+    counts: { vulnerable: 0, grundversorgung: 0, welt: 0 },
+    findings: [],
+    proofSuggestion: null
   };
 }
 
