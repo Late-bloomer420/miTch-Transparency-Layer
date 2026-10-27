@@ -320,6 +320,28 @@ dd,
   padding-top: 10px;
 }
 
+.proof-bridge-deeplink {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.proof-bridge-optin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.proof-bridge-optin input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
 .report-columns {
   display: grid;
   grid-template-columns: 1fr;
@@ -385,6 +407,18 @@ li.unknown {
 .action-btn.secondary:hover {
   background: rgba(109, 168, 255, 0.22);
   border-color: rgba(109, 168, 255, 0.52);
+}
+
+.action-btn.tertiary {
+  width: 100%;
+  border-color: rgba(241, 198, 91, 0.36);
+  background: rgba(241, 198, 91, 0.1);
+  color: var(--warning);
+}
+
+.action-btn.tertiary:hover {
+  background: rgba(241, 198, 91, 0.2);
+  border-color: rgba(241, 198, 91, 0.56);
 }
 
 .export-status {

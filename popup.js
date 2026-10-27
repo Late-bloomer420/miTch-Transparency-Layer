@@ -2,6 +2,8 @@ const $ = (id) => document.getElementById(id);
 
 let latestAnalysis = null;
 
+const WALLET_DEEPLINK_OPTIN_KEY = "mitch_experimental_wallet_deeplink";
+
 const fingerprintLabels = {
   canvas: "Canvas Readout (toDataURL / getImageData)",
   webgl: "WebGL Renderer / Pixel Readout",
@@ -46,14 +48,91 @@ function bindExportButtons() {
   }
 }
 
+function isWalletDeepLinkEnabled() {
+  try {
+    return window.localStorage.getItem(WALLET_DEEPLINK_OPTIN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function setWalletDeepLinkEnabled(enabled) {
+  try {
+    if (enabled) {
+      window.localStorage.setItem(WALLET_DEEPLINK_OPTIN_KEY, "1");
+    } else {
+      window.localStorage.removeItem(WALLET_DEEPLINK_OPTIN_KEY);
+    }
+  } catch {
+    // Ignore storage write errors (fail-closed)
+  }
+}
+
+function syncWalletDeepLinkButtonVisibility() {
+  const openBtn = $("openLocalWalletBtn");
+  const toggleEl = $("enableWalletDeepLinkToggle");
+  if (!openBtn) return;
+
+  const optedIn = toggleEl ? Boolean(toggleEl.checked) : isWalletDeepLinkEnabled();
+  const hasSuggestion = Boolean(
+    latestAnalysis &&
+    latestAnalysis.visibilityLayer &&
+    latestAnalysis.visibilityLayer.proofSuggestion &&
+    Array.isArray(latestAnalysis.visibilityLayer.proofSuggestion.suggestedMinimalClaims) &&
+    latestAnalysis.visibilityLayer.proofSuggestion.suggestedMinimalClaims.length > 0
+  );
+  openBtn.hidden = !(optedIn && hasSuggestion);
+}
+
 function bindProofBridgeButtons() {
   const jsonBtn = $("copyProofJsonBtn");
   const mdBtn = $("copyProofMarkdownBtn");
+  const toggleEl = $("enableWalletDeepLinkToggle");
+  const openBtn = $("openLocalWalletBtn");
+
   if (jsonBtn) {
     jsonBtn.addEventListener("click", () => copyProofSuggestion("json"));
   }
   if (mdBtn) {
     mdBtn.addEventListener("click", () => copyProofSuggestion("markdown"));
+  }
+  if (toggleEl) {
+    toggleEl.checked = isWalletDeepLinkEnabled();
+    toggleEl.addEventListener("change", () => {
+      setWalletDeepLinkEnabled(Boolean(toggleEl.checked));
+      syncWalletDeepLinkButtonVisibility();
+    });
+  }
+  if (openBtn) {
+    openBtn.addEventListener("click", () => openLocalWalletSuggestion());
+  }
+}
+
+function openLocalWalletSuggestion() {
+  try {
+    const toggleEl = $("enableWalletDeepLinkToggle");
+    const enabled = toggleEl ? Boolean(toggleEl.checked) : isWalletDeepLinkEnabled();
+    if (!enabled) return;
+
+    const suggestion =
+      latestAnalysis &&
+      latestAnalysis.visibilityLayer &&
+      latestAnalysis.visibilityLayer.proofSuggestion;
+    const bridge = globalThis.MitchProofBridge;
+    if (!bridge || !suggestion) return;
+
+    const targetUrl = bridge.buildLocalWalletDeepLink(suggestion, { enabled: true });
+    if (!targetUrl || !bridge.isAllowedLocalWalletOrigin(targetUrl)) {
+      return;
+    }
+
+    if (typeof chrome !== "undefined" && chrome.tabs && typeof chrome.tabs.create === "function") {
+      chrome.tabs.create({ url: targetUrl }).catch(() => {});
+    } else if (typeof window !== "undefined" && typeof window.open === "function") {
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
+    }
+  } catch {
+    // Silent / non-blocking per Item 8 specification
   }
 }
 
@@ -427,6 +506,7 @@ function renderVisibilityLayer(visibilityLayer) {
     );
     bridgeCard.hidden = !hasSuggestion;
   }
+  syncWalletDeepLinkButtonVisibility();
 
   const findings = (visibilityLayer && visibilityLayer.findings) || [];
   if (findings.length === 0) {
