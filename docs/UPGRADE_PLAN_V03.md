@@ -6,7 +6,7 @@
 - `@askmi/layer-resolver` (VISIBILITY_LAYER_MAP)  
 - `@askmi/shared-types` claim-contract (`age_over_18`, `birthdate`, …)  
 - ADOPT-1 / `@askmi/connect` (“Sign in with AskMI”) — age/liquor-store first slice  
-**Status:** Draft for review (PR-by-PR sequential delivery)  
+**Status:** Implemented as v0.3.0 through PRs #10–#13; remaining trust, evidence, and ecosystem work is tracked by the [v0.4 programme](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20)  
 **Date:** 2026-10-27
 
 ---
@@ -130,14 +130,15 @@ The Proof Bridge only **suggests** the minimal AskMI predicate the user *could* 
 
 ---
 
-## Suggested PR Sequence
+## Delivered PR sequence
 
-- **PR #9** — Plan Doc (`docs/UPGRADE_PLAN_V03.md`) or Item 6 (mapping + pure function + tests)
-- **PR #10** — Item 7 (UI + copy buttons)
-- **PR #11** — Item 8 (experimental deep-link, behind option)
-- **PR #12** — Item 9 (docs + version bump)
+- **PR #9** — Plan document (`docs/UPGRADE_PLAN_V03.md`)
+- **PR #10** — Item 6: canonical mapping and pure-function tests
+- **PR #11** — Item 7: proof-suggestion UI and copy actions
+- **PR #12** — Item 8: opt-in localhost-only experimental deep-link
+- **PR #13** — Item 9: documentation, privacy policy, and v0.3.0 version bump
 
-Each PR stays focused and reviewable, matching the v0.2 delivery style.
+These merges establish the v0.3 feature baseline. They do not close the v0.4 receipt-integrity, observation, permission, accessibility, release, or ecosystem gates.
 
 ---
 
