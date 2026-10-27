@@ -2,13 +2,13 @@
 
 **Repository:** `Late-bloomer420/miTch-Transparency-Layer`  
 **Canonical Ecosystem Reference:** [`Late-bloomer420/miTch`](https://github.com/Late-bloomer420/miTch) (`@askmi/layer-resolver`)  
-**Status:** Active Execution Plan (PR-by-PR sequential delivery)
+**Status:** Historical implementation plan — Items 1–5 merged through PRs #4–#8; remaining evidence/correctness work is tracked in #14, #15, and #17
 
 ---
 
 ## Overview
 
-This plan sequences five concrete upgrades to transform `miTch Transparency Layer` from a static capability checker into an accurate, AskMI-aligned privacy and data-minimization companion. Each item lands via its own focused Pull Request.
+This plan sequenced five concrete upgrades that moved `miTch Transparency Layer` from a static capability checker toward an AskMI-aligned privacy and data-minimization companion. The implementation landed, but the post-merge review found receipt completeness/count-label gaps and the broader observer/test/permission evidence is still incomplete. See the [v0.4 roadmap](PRODUCT_ROADMAP_V04.md); completion of this historical plan is not production-readiness evidence.
 
 ---
 
