@@ -11,13 +11,14 @@ The extension analyzes information that is visible inside the user's browser, in
 - localStorage and sessionStorage usage
 - browser-visible network requests
 - browser permission states
-- fingerprinting-related browser surfaces such as Canvas, WebGL, AudioContext, and WebRTC
+- fingerprinting-related browser surfaces such as Canvas, WebGL, AudioContext, WebRTC, and Content Security Policy (CSP) `eval()` status
+- form input attribute metadata (`name`, `id`, `autocomplete`, `placeholder`, `aria-label`, `type`) to display local data-minimization hints and AskMI Proof Bridge minimal-claim suggestions — the extension **never** reads, inspects, or stores values typed into form fields
 
 ## Local Processing Only
 
-All analysis is performed locally in the user's browser.
+All analysis — including the AskMI Visibility Layer and Proof Bridge (v0.3) — is performed 100% locally in the user's browser.
 
-miTch Transparency Layer does not operate a backend server, does not create user accounts, and does not transmit analyzed data to the developer or to any third party.
+miTch Transparency Layer does not operate a backend server, does not create user accounts, and does not transmit analyzed data or proof suggestions to the developer, to any remote wallet/verifier, or to any third party. Copying a report or proof suggestion writes only to the user's local clipboard when explicitly clicked by the user.
 
 ## No Sale or Sharing of Data
 
