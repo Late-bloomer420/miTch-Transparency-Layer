@@ -24,6 +24,7 @@ Every report item belongs to exactly one state:
 | State | Meaning |
 |---|---|
 | `observed` | The collector recorded a defined event or browser-visible state during the stated observation window |
+| `declared` | The site or provider states a purpose or practice in a cited first-party notice; the collector has not independently verified the statement |
 | `potential` | The information/capability is normally exposed or available, but specific use was not observed |
 | `unknown` | The collector cannot establish the fact from its current boundary |
 | `unavailable` | The collector attempted the check but the page/browser/permission/runtime prevented a reliable result |
@@ -93,6 +94,17 @@ An unavailable item must not be converted to `false`, `notDetected` or a clean r
         "summary": "Canvas readout call observed",
         "source": "main-world-observer",
         "confidence": "high"
+      }
+    ],
+    "declared": [
+      {
+        "id": "provider.purpose.personalised-advertising",
+        "summary": "The provider states that data may be used for personalised advertising",
+        "source": "provider-notice",
+        "sourceReference": "https://example.test/privacy",
+        "retrievedAt": "2026-10-27T14:00:00.000Z",
+        "independentlyVerified": false,
+        "confidence": "not-applicable"
       }
     ],
     "potential": [
@@ -176,6 +188,54 @@ Allowed initial values:
 
 `complete` does not mean server-side completeness or legal compliance.
 
+## Claim boundary: access is not collection, and transfer is not sale
+
+The receipt must keep the following lifecycle claims separate:
+
+| Claim | What can support it | What must not be inferred |
+|---|---|---|
+| Input surface present | Field metadata such as type, name pattern or form action was observed | That a person entered a value |
+| Access observed | A defined browser API, permission state or page event was observed | That the result was retained or linked to an identity |
+| Network transfer observed | A request to a named destination occurred during the observation window | That a particular field value was included when payload inspection did not prove it |
+| Data category transmitted | Reliable, minimised inspection proved the category without exporting the raw value | That the recipient stored, shared or sold it |
+| Storage | Explicit observable client-side storage evidence, or a cited provider declaration | Undisclosed server-side retention |
+| Sharing | A cited provider declaration or other explicit evidence | A contractual relationship derived only from a third-party request |
+| Sale/commercial use | A cited provider declaration or other explicit evidence that actually supports that claim | Sale inferred from trackers, advertising technology or third-party traffic alone |
+
+The collector must not use the unqualified term `collected` when it only knows that a field exists, an API was called or a request occurred. It should name the exact event instead.
+
+Absence of evidence must remain explicit: **not observed is not the same as absent**.
+
+### Required wording pattern
+
+A user-facing finding should answer four separate questions:
+
+1. **Observed:** What event or browser-visible state was actually recorded?
+2. **Declared or possible:** What does the provider state, or what capability exists?
+3. **Not verified:** Which tempting conclusion is not supported by the available evidence?
+4. **Unknown:** What server-side, contractual or downstream fact remains outside the collector boundary?
+
+Example:
+
+> **Observed:** A request to `analytics.example` occurred after form submission.  
+> **Potential:** Form or interaction metadata could have been included.  
+> **Not verified:** The collector did not establish that the entered email address was part of the request.  
+> **Unknown:** Retention, onward sharing, contractual use and sale cannot be determined from this observation.
+
+A sale statement must never be generated from domain classification, request count, fingerprinting detection or score alone.
+
+## Declaration provenance
+
+Every `declared` item must include:
+
+- the first-party source or notice reference;
+- retrieval time;
+- the claim in bounded paraphrase;
+- whether the statement was independently verified (normally `false`); and
+- any relevant scope limitation.
+
+Declarations and observations must remain separately filterable in the UI and all serializations.
+
 ## Privacy and minimisation rules
 
 Receipts must not contain:
@@ -196,6 +256,7 @@ The page URL should default to origin/domain only. Query and fragment components
 ## Score rules
 
 - Call it `Surface Score`.
+- Present observation coverage, technical exposure and evidence quality as distinct dimensions; do not collapse unknown coverage into a reassuring number.
 - Include the component contributions and scoring-rule version.
 - Treat unavailable inputs as unavailable, not zero.
 - Do not use it for credential, trust, fraud, access, compliance or legal decisions.
@@ -209,7 +270,7 @@ JSON and Markdown must be generated from the same normalized report model used b
 Both formats must preserve:
 
 - scan status and limitations;
-- observed, potential, unknown and unavailable sections;
+- observed, declared, potential, unknown and unavailable sections;
 - request and domain counts;
 - collector/rule versions;
 - score semantics/components; and
