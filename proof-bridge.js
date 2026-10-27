@@ -20,6 +20,7 @@
   const PROOF_BRIDGE_VERSION = "0.3.0";
   const CLAIM_CONTRACT_VERSION = "1.0.0";
   const CANONICAL_CLAIMS = Object.freeze(["birthdate", "age_over_18"]);
+  const DEFAULT_LOCAL_WALLET_URL = "http://localhost:5174/";
 
   const VISIBILITY_FIELD_RULES = Object.freeze([
     {
@@ -269,14 +270,80 @@
     ].join("\n");
   }
 
+  /**
+   * Fail-closed origin check for experimental local wallet deep-links (Item 8).
+   * Strictly allows only http://localhost, https://localhost, http://127.0.0.1, or https://127.0.0.1.
+   */
+  function isAllowedLocalWalletOrigin(urlStr) {
+    if (typeof urlStr !== "string" || !urlStr.trim()) return false;
+    try {
+      const parsed = new URL(urlStr);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return false;
+      }
+      if (parsed.username || parsed.password) {
+        return false;
+      }
+      const host = parsed.hostname.toLowerCase();
+      return host === "localhost" || host === "127.0.0.1";
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Construct a best-effort local wallet deep-link URL when explicitly opted in (Item 8).
+   * Returns null if opt-in is not enabled, if the suggestion is missing/invalid, or if the
+   * base URL is not a valid localhost/127.0.0.1 origin.
+   */
+  function buildLocalWalletDeepLink(proofSuggestion, options) {
+    if (!options || options.enabled !== true) {
+      return null;
+    }
+    if (
+      !proofSuggestion ||
+      !Array.isArray(proofSuggestion.suggestedMinimalClaims) ||
+      proofSuggestion.suggestedMinimalClaims.length === 0
+    ) {
+      return null;
+    }
+
+    const validClaims = proofSuggestion.suggestedMinimalClaims.filter(
+      (c) => CANONICAL_CLAIMS.includes(c) && c !== "birthdate"
+    );
+    if (validClaims.length === 0) {
+      return null;
+    }
+
+    const baseUrl = (options && options.baseUrl) || DEFAULT_LOCAL_WALLET_URL;
+    if (!isAllowedLocalWalletOrigin(baseUrl)) {
+      return null;
+    }
+
+    try {
+      const target = new URL(baseUrl);
+      target.searchParams.set("demo", "wallet");
+      target.searchParams.set("proofBridge", PROOF_BRIDGE_VERSION);
+      target.searchParams.set("contractVersion", CLAIM_CONTRACT_VERSION);
+      target.searchParams.set("suggest", validClaims.join(","));
+      const finalHref = target.toString();
+      return isAllowedLocalWalletOrigin(finalHref) ? finalHref : null;
+    } catch {
+      return null;
+    }
+  }
+
   return {
     PROOF_BRIDGE_VERSION,
     CLAIM_CONTRACT_VERSION,
     CANONICAL_CLAIMS,
+    DEFAULT_LOCAL_WALLET_URL,
     VISIBILITY_FIELD_RULES,
     classifyFieldDescriptor,
     evaluateFieldsForVisibilityAndProof,
     buildProofSuggestionPayload,
-    buildProofSuggestionMarkdown
+    buildProofSuggestionMarkdown,
+    isAllowedLocalWalletOrigin,
+    buildLocalWalletDeepLink
   };
 });

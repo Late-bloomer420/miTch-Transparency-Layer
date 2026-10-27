@@ -9,7 +9,9 @@ const {
   classifyFieldDescriptor,
   evaluateFieldsForVisibilityAndProof,
   buildProofSuggestionPayload,
-  buildProofSuggestionMarkdown
+  buildProofSuggestionMarkdown,
+  isAllowedLocalWalletOrigin,
+  buildLocalWalletDeepLink
 } = require("../proof-bridge.js");
 
 test("Item 6 — pins canonical contractVersion 1.0.0 and EUDI claim names", () => {
@@ -86,4 +88,46 @@ test("Item 7 — buildProofSuggestionPayload and buildProofSuggestionMarkdown em
   });
   assert.ok(md && md.includes("# Suggested minimal AskMI proof"));
   assert.ok(md.includes("`age_over_18`"));
+});
+
+test("Item 8 — isAllowedLocalWalletOrigin strictly allows localhost and 127.0.0.1 and rejects remote or unsafe origins", () => {
+  assert.equal(isAllowedLocalWalletOrigin("http://localhost:5174/"), true);
+  assert.equal(isAllowedLocalWalletOrigin("https://localhost:5174/?demo=wallet"), true);
+  assert.equal(isAllowedLocalWalletOrigin("http://127.0.0.1:5174/"), true);
+  assert.equal(isAllowedLocalWalletOrigin("https://127.0.0.1:8443/"), true);
+
+  assert.equal(isAllowedLocalWalletOrigin("https://wallet.askmi.example/"), false);
+  assert.equal(isAllowedLocalWalletOrigin("http://localhost.evil.example/"), false);
+  assert.equal(isAllowedLocalWalletOrigin("http://user:pass@localhost:5174/"), false);
+  assert.equal(isAllowedLocalWalletOrigin("javascript:alert(1)"), false);
+  assert.equal(isAllowedLocalWalletOrigin(""), false);
+});
+
+test("Item 8 — buildLocalWalletDeepLink requires explicit opt-in and localhost origin", () => {
+  const { proofSuggestion } = evaluateFieldsForVisibilityAndProof([
+    { name: "birthdate", type: "date" }
+  ]);
+
+  // Default off -> null
+  assert.equal(buildLocalWalletDeepLink(proofSuggestion), null);
+  assert.equal(buildLocalWalletDeepLink(proofSuggestion, { enabled: false }), null);
+
+  // Remote host rejected even when enabled
+  assert.equal(
+    buildLocalWalletDeepLink(proofSuggestion, {
+      enabled: true,
+      baseUrl: "https://remote-wallet.example/"
+    }),
+    null
+  );
+
+  // Enabled + localhost -> constructs suggestion URL
+  const urlStr = buildLocalWalletDeepLink(proofSuggestion, { enabled: true });
+  assert.ok(urlStr);
+  const parsed = new URL(urlStr);
+  assert.equal(parsed.origin, "http://localhost:5174");
+  assert.equal(parsed.searchParams.get("demo"), "wallet");
+  assert.equal(parsed.searchParams.get("proofBridge"), "0.3.0");
+  assert.equal(parsed.searchParams.get("contractVersion"), "1.0.0");
+  assert.equal(parsed.searchParams.get("suggest"), "age_over_18");
 });
