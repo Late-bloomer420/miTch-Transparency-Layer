@@ -250,6 +250,25 @@
     };
   }
 
+  /**
+   * Build the human-readable Markdown representation of a Proof Suggestion (Item 7).
+   */
+  function buildProofSuggestionMarkdown(proofSuggestion, pageContext) {
+    const payload = buildProofSuggestionPayload(proofSuggestion, pageContext);
+    if (!payload) return null;
+    const s = payload.askmiProofSuggestion;
+    return [
+      `# Suggested minimal AskMI proof`,
+      `- **Version:** ${s.version} (Claim Contract \`${s.contractVersion}\`)`,
+      `- **Generated At:** ${s.generatedAt}`,
+      `- **Page:** \`${s.page.origin}\` (${s.page.title})`,
+      `- **Observed Over-Collection:** \`${s.observedOverCollection.join(", ")}\``,
+      `- **Suggested Minimal Claim(s):** \`${s.suggestedMinimalClaims.join(", ")}\``,
+      `- **Rationale:** ${s.rationale}`,
+      `- **Note:** ${s.note}`
+    ].join("\n");
+  }
+
   return {
     PROOF_BRIDGE_VERSION,
     CLAIM_CONTRACT_VERSION,
@@ -257,6 +276,7 @@
     VISIBILITY_FIELD_RULES,
     classifyFieldDescriptor,
     evaluateFieldsForVisibilityAndProof,
-    buildProofSuggestionPayload
+    buildProofSuggestionPayload,
+    buildProofSuggestionMarkdown
   };
 });
