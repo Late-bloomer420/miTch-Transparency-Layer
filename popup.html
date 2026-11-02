@@ -19,10 +19,19 @@
       </header>
 
       <section class="score-panel" aria-labelledby="score-title">
-        <div>
-          <span class="section-kicker">Transparency Surface Score</span>
+        <div class="score-main">
+          <span class="section-kicker">Surface Score</span>
           <h2 id="score-title"><span id="scoreValue">--</span><small>/100</small></h2>
           <p id="scoreCategory">Checking visible browser surfaces...</p>
+          <p id="scoreSemantics" class="guardrail score-note">
+            Informational surface summary (<code>surface-score-v1</code>). Low score ≠ safe; unavailable checks are never counted as zero.
+          </p>
+          <dl class="score-dimensions" aria-label="Surface Score Dimensions">
+            <div><dt>Coverage</dt><dd id="scoreCoverage">--</dd></div>
+            <div><dt>Exposure</dt><dd id="scoreExposure">--</dd></div>
+            <div><dt>Evidence</dt><dd id="scoreEvidence">--</dd></div>
+          </dl>
+          <p id="scoreComponents" class="score-components"></p>
         </div>
         <div class="score-ring" aria-hidden="true">
           <svg viewBox="0 0 120 120">
@@ -38,33 +47,34 @@
           <span id="scanState" class="status-pill">Scanning</span>
         </div>
         <dl class="site-list">
-          <div><dt>Domain</dt><dd id="domain">Unknown</dd></div>
-          <div><dt>Protocol</dt><dd id="protocol">Unknown</dd></div>
-          <div><dt>Page Title</dt><dd id="pageTitle">Unknown</dd></div>
+          <div><dt>Origin</dt><dd id="domain">Unavailable</dd></div>
+          <div><dt>Protocol</dt><dd id="protocol">Unavailable</dd></div>
+          <div><dt>Page Title</dt><dd id="pageTitle">Unavailable</dd></div>
+          <div><dt>Collector</dt><dd id="collectorProvenance">--</dd></div>
         </dl>
       </section>
 
       <section class="grid-two">
         <article class="panel compact" aria-labelledby="cookies-title">
-          <h2 id="cookies-title">Cookie Analysis</h2>
-          <div class="metric-row"><span>Total cookies</span><strong id="cookieTotal">0</strong></div>
-          <div class="metric-row"><span>First-party</span><strong id="firstPartyCookies">0</strong></div>
-          <div class="metric-row"><span>Third-party detectable</span><strong id="thirdPartyCookies">0</strong></div>
+          <h2 id="cookies-title">Cookie Presence</h2>
+          <div class="metric-row"><span>Total cookies</span><strong id="cookieTotal">--</strong></div>
+          <div class="metric-row"><span>First-party</span><strong id="firstPartyCookies">--</strong></div>
+          <div class="metric-row"><span>Third-party scope</span><strong id="thirdPartyCookies">--</strong></div>
         </article>
 
         <article class="panel compact" aria-labelledby="storage-title">
-          <h2 id="storage-title">Storage Analysis</h2>
-          <div class="metric-row"><span>localStorage</span><strong id="localStorageUsage">Unknown</strong></div>
-          <div class="metric-row"><span>sessionStorage</span><strong id="sessionStorageUsage">Unknown</strong></div>
+          <h2 id="storage-title">Client Storage</h2>
+          <div class="metric-row"><span>localStorage</span><strong id="localStorageUsage">Unavailable</strong></div>
+          <div class="metric-row"><span>sessionStorage</span><strong id="sessionStorageUsage">Unavailable</strong></div>
         </article>
       </section>
 
       <section class="panel" aria-labelledby="visibility-layer-title">
         <div class="section-head">
           <h2 id="visibility-layer-title">AskMI Data-Minimization &amp; Visibility Layer</h2>
-          <span id="visibilityLayerBadge" class="status-pill">None Detected</span>
+          <span id="visibilityLayerBadge" class="status-pill">None Observed</span>
         </div>
-        <p class="guardrail">Classifies form inputs on this page into WELT, GRUNDVERSORGUNG, or VULNERABLE without reading typed values.</p>
+        <p class="guardrail">Inspects form input attribute metadata only (<code>WELT</code>, <code>GRUNDVERSORGUNG</code>, <code>VULNERABLE</code>). Entered values are never read.</p>
         <div id="visibilityLayerList" class="signal-list"></div>
 
         <div id="proofBridgeCard" class="proof-bridge-card" hidden>
@@ -73,7 +83,7 @@
             <span id="proofBridgeStatus" class="export-status" aria-live="polite"></span>
           </div>
           <p id="proofBridgeBody" class="proof-bridge-body">
-            Instead of sharing your full date of birth, an AskMI <code>age_over_18</code> predicate proof is sufficient.
+            Advisory option: Instead of sharing your full date of birth, an AskMI <code>age_over_18</code> predicate proof is sufficient where only age eligibility is needed.
           </p>
           <div class="export-actions proof-bridge-actions">
             <button id="copyProofJsonBtn" type="button" class="action-btn">Copy Proof Suggestion (JSON)</button>
@@ -93,18 +103,18 @@
 
       <section class="panel" aria-labelledby="third-party-title">
         <div class="section-head">
-          <h2 id="third-party-title">Third-Party Domains Contacted</h2>
-          <span id="thirdPartyDomainCount" class="status-pill">0 domains</span>
+          <h2 id="third-party-title">Third-Party Network Activity</h2>
+          <span id="thirdPartyDomainCount" class="status-pill">0 domains · 0 req</span>
         </div>
-        <p class="guardrail">External domains contacted by this tab, classified by known tracker/analytics vs. external resource.</p>
+        <p class="guardrail">Separates unique contacted domains, observed request counts, and local tracker-rule matches. Network contact ≠ verified payload or data sale.</p>
         <div id="thirdPartyDomainList" class="signal-list"></div>
       </section>
 
       <section class="panel" aria-labelledby="fingerprint-title">
         <div class="section-head">
-          <h2 id="fingerprint-title">Fingerprinting Surface Detection</h2>
+          <h2 id="fingerprint-title">Fingerprinting Surface Observation</h2>
         </div>
-        <p class="guardrail">Active calls to browser fingerprinting APIs observed on this page.</p>
+        <p class="guardrail">API calls observed in page MAIN world since load (unless host scripts interfered). Not observed ≠ absent.</p>
         <div id="fingerprintList" class="signal-list"></div>
       </section>
 
@@ -115,26 +125,35 @@
 
       <section class="panel report" aria-labelledby="report-title">
         <div class="section-head">
-          <h2 id="report-title">Three-Layer Report</h2>
+          <h2 id="report-title">Five-State Evidence Report</h2>
           <span id="exportStatus" class="export-status" aria-live="polite"></span>
         </div>
+        <p class="guardrail">Not observed during this scan ≠ absent. URL query and fragment tokens are redacted from receipts.</p>
         <div class="report-columns">
           <div>
-            <h3>Observed Facts</h3>
+            <h3>Observed</h3>
             <ul id="observedFacts"></ul>
+          </div>
+          <div>
+            <h3>Declared (Provider Notices)</h3>
+            <ul id="declaredStatements"></ul>
           </div>
           <div>
             <h3>Potential Access</h3>
             <ul id="potentialAccess"></ul>
           </div>
           <div>
-            <h3>Unknown</h3>
+            <h3>Unknown (Server / Downstream)</h3>
             <ul id="unknowns"></ul>
+          </div>
+          <div>
+            <h3>Unavailable Checks</h3>
+            <ul id="unavailableChecks"></ul>
           </div>
         </div>
         <div class="export-actions">
-          <button id="copyMarkdownBtn" type="button" class="action-btn">Copy Markdown Report</button>
-          <button id="copyJsonBtn" type="button" class="action-btn secondary">Copy JSON Receipt</button>
+          <button id="copyMarkdownBtn" type="button" class="action-btn">Copy Markdown Receipt</button>
+          <button id="copyJsonBtn" type="button" class="action-btn secondary">Copy JSON Receipt (v1)</button>
         </div>
       </section>
 
@@ -143,6 +162,7 @@
       </footer>
     </main>
     <script src="proof-bridge.js"></script>
+    <script src="surface-receipt.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

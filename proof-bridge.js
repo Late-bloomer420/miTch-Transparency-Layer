@@ -29,7 +29,7 @@
       label: "Health / Medical Attribute",
       layer: "VULNERABLE (High)",
       state: "Detected",
-      hint: "GDPR Art. 9 Special Category (VULNERABLE). Use selective disclosure instead of raw medical forms."
+      hint: "Health-related input metadata observed (VULNERABLE layer). Entered values and legal basis were not verified; selective disclosure can reduce raw attribute exposure."
     },
     {
       key: "financial",
@@ -37,7 +37,7 @@
       label: "Financial / Tax Identifier",
       layer: "VULNERABLE (High)",
       state: "Detected",
-      hint: "High-risk financial attribute (VULNERABLE). Verify relying-party trust before disclosure."
+      hint: "Financial/tax input metadata observed (VULNERABLE layer). Entered values and server handling were not verified; check relying-party context before disclosure."
     },
     {
       key: "secret",
@@ -45,7 +45,7 @@
       label: "Shared Secret / Password Input",
       layer: "VULNERABLE (High)",
       state: "Detected",
-      hint: "Shared secret requested. Hardware-bound AskMI passkeys avoid server-stored passwords."
+      hint: "Password/secret input metadata observed (VULNERABLE layer). Hardware-bound AskMI passkeys can avoid reusable shared secrets where supported."
     },
     {
       key: "dob",
@@ -53,7 +53,7 @@
       label: "Full Date of Birth (birthdate)",
       layer: "GRUNDVERSORGUNG (Medium)",
       state: "Prompt",
-      hint: "Over-collection warning: Full DOB requested. An AskMI age_over_18 predicate proof suffices.",
+      hint: "DOB-like input metadata observed (GRUNDVERSORGUNG layer). Site purpose was not verified; where only age eligibility is needed, an AskMI age_over_18 predicate is a data-minimizing option.",
       observedOverCollection: Object.freeze(["birthdate"]),
       suggestedMinimalClaims: Object.freeze(["age_over_18"]),
       rationale: "Full date of birth requested; age >= 18 predicate is data-minimizing."
@@ -64,7 +64,7 @@
       label: "Address / Phone Contact",
       layer: "GRUNDVERSORGUNG (Medium)",
       state: "Prompt",
-      hint: "GRUNDVERSORGUNG attribute. Share only if physical delivery or direct contact is required."
+      hint: "Contact/address input metadata observed (GRUNDVERSORGUNG layer). Share only when direct contact or physical delivery is intended."
     },
     {
       key: "identity_basic",
@@ -72,9 +72,66 @@
       label: "Basic Identity / Email (WELT)",
       layer: "WELT (Low)",
       state: "Not Detected",
-      hint: "Standard Layer 0 (WELT) attribute. Pairwise pseudonymous identifiers prevent cross-site correlation."
+      hint: "Basic identity/email input metadata observed (WELT layer). Pairwise pseudonymous identifiers can reduce cross-site correlation where supported."
     }
   ]);
+
+  /**
+   * Strip control characters and collapse newlines/whitespace for untrusted page strings.
+   * @param {unknown} raw
+   * @param {string} fallback
+   * @returns {string}
+   */
+  function sanitizePlainText(raw, fallback) {
+    if (typeof raw !== "string") return fallback;
+    const cleaned = raw
+      .replace(/[\x00-\x1F\x7F]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 200);
+    return cleaned || fallback;
+  }
+
+  /**
+   * Escape Markdown inline metacharacters so untrusted page-controlled strings
+   * (such as document.title) render strictly as inert literal text (#21).
+   * @param {unknown} raw
+   * @returns {string}
+   */
+  function escapeMarkdownInline(raw) {
+    const clean = sanitizePlainText(String(raw == null ? "" : raw), "");
+    return clean.replace(/([\\`*_{}[\]()#+!<>|~])/g, "\\$1");
+  }
+
+  /**
+   * Sanitize text placed inside single-backtick Markdown code spans (`...`).
+   * Inside CommonMark code spans, _, *, [], () are already literal; only backticks
+   * and control characters/newlines could break out of the code span.
+   */
+  function sanitizeCodeSpan(raw) {
+    return sanitizePlainText(String(raw == null ? "" : raw), "").replace(/`/g, "'");
+  }
+
+  /**
+   * Redact a URL or origin string down to scheme + host (+ port) only,
+   * stripping credentials, path, query parameters, and fragments (#21).
+   * @param {unknown} rawOrigin
+   * @returns {string}
+   */
+  function sanitizeOrigin(rawOrigin) {
+    if (typeof rawOrigin !== "string" || !rawOrigin.trim()) return "unknown";
+    const trimmed = rawOrigin.trim();
+    if (trimmed === "unknown" || trimmed === "unavailable") return trimmed;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return "unknown";
+      }
+      return parsed.origin;
+    } catch {
+      return "unknown";
+    }
+  }
 
   /**
    * Classify a single form field descriptor (attributes only, never field values).
@@ -158,6 +215,7 @@
 
         if (!findingsByKey.has(finding.key)) {
           const entry = {
+            key: finding.key,
             label: finding.label,
             layer: finding.layer,
             state: finding.state,
@@ -221,7 +279,7 @@
   /**
    * Build the full v0.3 JSON payload for copying/exporting a Proof Suggestion.
    */
-  function buildProofSuggestionPayload(proofSuggestion, pageContext) {
+  function buildProofSuggestionPayload(proofSuggestion, pageContext, options) {
     if (
       !proofSuggestion ||
       !Array.isArray(proofSuggestion.suggestedMinimalClaims) ||
@@ -230,14 +288,18 @@
       return null;
     }
 
+    const generatedAt =
+      (options && typeof options.generatedAt === "string" && options.generatedAt) ||
+      new Date().toISOString();
+
     return {
       askmiProofSuggestion: {
         version: PROOF_BRIDGE_VERSION,
         contractVersion: CLAIM_CONTRACT_VERSION,
-        generatedAt: new Date().toISOString(),
+        generatedAt,
         page: {
-          origin: (pageContext && pageContext.origin) || "unknown",
-          title: (pageContext && pageContext.title) || "Untitled page"
+          origin: sanitizeOrigin(pageContext && pageContext.origin),
+          title: sanitizePlainText(pageContext && pageContext.title, "Untitled page")
         },
         observedOverCollection: Array.from(proofSuggestion.observedOverCollection || ["birthdate"]),
         suggestedMinimalClaims: Array.from(proofSuggestion.suggestedMinimalClaims),
@@ -252,21 +314,25 @@
   }
 
   /**
-   * Build the human-readable Markdown representation of a Proof Suggestion (Item 7).
+   * Build the human-readable Markdown representation of a Proof Suggestion (Item 7, hardened for #21).
    */
-  function buildProofSuggestionMarkdown(proofSuggestion, pageContext) {
-    const payload = buildProofSuggestionPayload(proofSuggestion, pageContext);
+  function buildProofSuggestionMarkdown(proofSuggestion, pageContext, options) {
+    const payload = buildProofSuggestionPayload(proofSuggestion, pageContext, options);
     if (!payload) return null;
     const s = payload.askmiProofSuggestion;
+    const safeOrigin = sanitizeCodeSpan(s.page.origin);
+    const safeTitle = escapeMarkdownInline(s.page.title);
+    const safeObserved = s.observedOverCollection.map((c) => sanitizeCodeSpan(c)).join(", ");
+    const safeSuggested = s.suggestedMinimalClaims.map((c) => sanitizeCodeSpan(c)).join(", ");
     return [
       `# Suggested minimal AskMI proof`,
-      `- **Version:** ${s.version} (Claim Contract \`${s.contractVersion}\`)`,
-      `- **Generated At:** ${s.generatedAt}`,
-      `- **Page:** \`${s.page.origin}\` (${s.page.title})`,
-      `- **Observed Over-Collection:** \`${s.observedOverCollection.join(", ")}\``,
-      `- **Suggested Minimal Claim(s):** \`${s.suggestedMinimalClaims.join(", ")}\``,
-      `- **Rationale:** ${s.rationale}`,
-      `- **Note:** ${s.note}`
+      `- **Version:** ${escapeMarkdownInline(s.version)} (Claim Contract \`${sanitizeCodeSpan(s.contractVersion)}\`)`,
+      `- **Generated At:** ${escapeMarkdownInline(s.generatedAt)}`,
+      `- **Page:** \`${safeOrigin}\` (${safeTitle})`,
+      `- **Observed Over-Collection:** \`${safeObserved}\``,
+      `- **Suggested Minimal Claim(s):** \`${safeSuggested}\``,
+      `- **Rationale:** ${escapeMarkdownInline(s.rationale)}`,
+      `- **Note:** ${escapeMarkdownInline(s.note)}`
     ].join("\n");
   }
 
@@ -339,6 +405,9 @@
     CANONICAL_CLAIMS,
     DEFAULT_LOCAL_WALLET_URL,
     VISIBILITY_FIELD_RULES,
+    sanitizePlainText,
+    escapeMarkdownInline,
+    sanitizeOrigin,
     classifyFieldDescriptor,
     evaluateFieldsForVisibilityAndProof,
     buildProofSuggestionPayload,

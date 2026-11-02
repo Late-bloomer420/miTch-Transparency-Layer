@@ -1,27 +1,8 @@
 const $ = (id) => document.getElementById(id);
 
-let latestAnalysis = null;
+let latestReceipt = null;
 
 const WALLET_DEEPLINK_OPTIN_KEY = "mitch_experimental_wallet_deeplink";
-
-const fingerprintLabels = {
-  canvas: "Canvas Readout (toDataURL / getImageData)",
-  webgl: "WebGL Renderer / Pixel Readout",
-  audio: "AudioContext Oscillator",
-  webrtc: "WebRTC PeerConnection",
-  evalAttempt: "Dynamic eval() Attempt"
-};
-
-const KNOWN_TRACKER_PATTERNS = [
-  { pattern: /google-analytics\.com|googletagmanager\.com|analytics\.google\.com/i, category: "Analytics Tracker" },
-  { pattern: /doubleclick\.net|googlesyndication\.com|googleadservices\.com|adservice\.google/i, category: "Ad-Tech Tracker" },
-  { pattern: /facebook\.net|facebook\.com|fbcdn\.net/i, category: "Social / Ad Tracker" },
-  { pattern: /clarity\.ms|hotjar\.com|fullstory\.com|mouseflow\.com|logrocket\.com/i, category: "Session Replay" },
-  { pattern: /mixpanel\.com|segment\.io|segment\.com|amplitude\.com|posthog\.com|plausible\.io/i, category: "Product Telemetry" },
-  { pattern: /criteo\.com|taboola\.com|outbrain\.com|adnxs\.com|rubiconproject\.com|pubmatic\.com/i, category: "Ad Exchange" },
-  { pattern: /tiktok\.com|byteoversea\.com|snapchat\.com|sc-static\.net|linkedin\.com|licdn\.com|bat\.bing\.com/i, category: "Attribution Pixel" },
-  { pattern: /sentry\.io|datadoghq\.com|newrelic\.com|nr-data\.net|bugsnag\.com/i, category: "Error / RUM Telemetry" }
-];
 
 const permissionQueries = [
   { key: "geolocation", label: "Geolocation", name: "geolocation" },
@@ -75,11 +56,11 @@ function syncWalletDeepLinkButtonVisibility() {
 
   const optedIn = toggleEl ? Boolean(toggleEl.checked) : isWalletDeepLinkEnabled();
   const hasSuggestion = Boolean(
-    latestAnalysis &&
-    latestAnalysis.visibilityLayer &&
-    latestAnalysis.visibilityLayer.proofSuggestion &&
-    Array.isArray(latestAnalysis.visibilityLayer.proofSuggestion.suggestedMinimalClaims) &&
-    latestAnalysis.visibilityLayer.proofSuggestion.suggestedMinimalClaims.length > 0
+    latestReceipt &&
+      latestReceipt.visibility &&
+      latestReceipt.visibility.proofSuggestion &&
+      Array.isArray(latestReceipt.visibility.proofSuggestion.suggestedMinimalClaims) &&
+      latestReceipt.visibility.proofSuggestion.suggestedMinimalClaims.length > 0
   );
   openBtn.hidden = !(optedIn && hasSuggestion);
 }
@@ -115,9 +96,9 @@ function openLocalWalletSuggestion() {
     if (!enabled) return;
 
     const suggestion =
-      latestAnalysis &&
-      latestAnalysis.visibilityLayer &&
-      latestAnalysis.visibilityLayer.proofSuggestion;
+      latestReceipt &&
+      latestReceipt.visibility &&
+      latestReceipt.visibility.proofSuggestion;
     const bridge = globalThis.MitchProofBridge;
     if (!bridge || !suggestion) return;
 
@@ -138,31 +119,32 @@ function openLocalWalletSuggestion() {
 
 async function copyProofSuggestion(format) {
   if (
-    !latestAnalysis ||
-    !latestAnalysis.visibilityLayer ||
-    !latestAnalysis.visibilityLayer.proofSuggestion
+    !latestReceipt ||
+    !latestReceipt.visibility ||
+    !latestReceipt.visibility.proofSuggestion
   ) {
     return;
   }
 
   const statusEl = $("proofBridgeStatus");
   const pageContext = {
-    origin: latestAnalysis.url ? latestAnalysis.url.origin : "unknown",
-    title: $("pageTitle") ? $("pageTitle").textContent : "Untitled page"
+    origin: latestReceipt.page ? latestReceipt.page.origin : "unknown",
+    title: latestReceipt.page ? latestReceipt.page.title : "Untitled page"
   };
 
   try {
-    const suggestion = latestAnalysis.visibilityLayer.proofSuggestion;
+    const suggestion = latestReceipt.visibility.proofSuggestion;
     const bridge = globalThis.MitchProofBridge;
-    const text = format === "json"
-      ? JSON.stringify(
-          bridge
-            ? bridge.buildProofSuggestionPayload(suggestion, pageContext)
-            : { askmiProofSuggestion: suggestion },
-          null,
-          2
-        )
-      : (bridge && bridge.buildProofSuggestionMarkdown(suggestion, pageContext)) || "";
+    const text =
+      format === "json"
+        ? JSON.stringify(
+            bridge
+              ? bridge.buildProofSuggestionPayload(suggestion, pageContext)
+              : { askmiProofSuggestion: suggestion },
+            null,
+            2
+          )
+        : (bridge && bridge.buildProofSuggestionMarkdown(suggestion, pageContext)) || "";
 
     if (!text) return;
     await navigator.clipboard.writeText(text);
@@ -180,15 +162,19 @@ async function copyProofSuggestion(format) {
 }
 
 async function copySurfaceReport(format) {
-  if (!latestAnalysis) return;
+  if (!latestReceipt) return;
   const statusEl = $("exportStatus");
+  const receiptEngine = globalThis.MitchSurfaceReceipt;
+  if (!receiptEngine) return;
+
   try {
-    const text = format === "json"
-      ? buildJsonReceipt(latestAnalysis)
-      : buildMarkdownReport(latestAnalysis);
+    const text =
+      format === "json"
+        ? receiptEngine.serializeReceiptJson(latestReceipt)
+        : receiptEngine.serializeReceiptMarkdown(latestReceipt);
     await navigator.clipboard.writeText(text);
     if (statusEl) {
-      statusEl.textContent = format === "json" ? "JSON Copied ✓" : "Markdown Copied ✓";
+      statusEl.textContent = format === "json" ? "JSON (v1) Copied ✓" : "Markdown Copied ✓";
       setTimeout(() => {
         statusEl.textContent = "";
       }, 2200);
@@ -200,74 +186,53 @@ async function copySurfaceReport(format) {
   }
 }
 
-function buildJsonReceipt(analysis) {
-  const receipt = {
-    schema: "askmi.transparency.surface-receipt.v0.2",
-    capturedAt: new Date().toISOString(),
-    website: {
-      domain: analysis.url ? analysis.url.hostname : "unknown",
-      protocol: analysis.url ? analysis.url.protocol.replace(":", "").toUpperCase() : "UNKNOWN",
-      href: analysis.url ? analysis.url.href : null
-    },
-    score: {
-      value: analysis.score,
-      category: analysis.category
-    },
-    cookies: analysis.cookies,
-    storage: analysis.storage,
-    visibilityLayer: analysis.visibilityLayer,
-    thirdPartyRequests: {
-      count: analysis.requestData.thirdPartyRequestCount,
-      knownTrackerCount: analysis.requestData.knownTrackerCount,
-      domains: analysis.requestData.classifiedDomains
-    },
-    fingerprinting: analysis.fingerprinting,
-    csp: analysis.csp,
-    permissions: analysis.permissions
-  };
-  return JSON.stringify(receipt, null, 2);
-}
-
-function buildMarkdownReport(analysis) {
-  const host = (analysis.url && analysis.url.hostname) || "unknown";
-  const proto = (analysis.url && analysis.url.protocol.replace(":", "").toUpperCase()) || "UNKNOWN";
-  const lines = [
-    `# miTch Transparency Layer — Surface Report`,
-    `- **Captured:** ${new Date().toISOString()}`,
-    `- **Domain:** \`${host}\` (${proto})`,
-    `- **Surface Score:** **${analysis.score}/100** (${analysis.category})`,
-    `- **AskMI Visibility Layer:** \`${(analysis.visibilityLayer && analysis.visibilityLayer.highestLayer) || "None Detected"}\``,
-    `- **Cookies:** ${analysis.cookies.total} total (${analysis.cookies.firstParty} first-party, ${analysis.cookies.thirdParty} third-party)`,
-    `- **Storage:** localStorage=${analysis.storage.localStorage}, sessionStorage=${analysis.storage.sessionStorage}`,
-    `- **Third-Party Domains (${analysis.requestData.thirdPartyRequestCount}):** ${
-      analysis.requestData.thirdPartyDomains.length > 0
-        ? analysis.requestData.thirdPartyDomains.join(", ")
-        : "None"
-    }`,
-    `- **CSP Eval Protection:** ${analysis.csp && analysis.csp.metaBlocksEval ? "Active (blocks eval)" : "Not detected in meta"} (blocked violations: ${(analysis.csp && analysis.csp.evalBlockedCount) || 0})`
-  ];
-  return lines.join("\n");
+function getManifestVersion() {
+  try {
+    if (
+      typeof chrome !== "undefined" &&
+      chrome.runtime &&
+      typeof chrome.runtime.getManifest === "function"
+    ) {
+      const m = chrome.runtime.getManifest();
+      if (m && m.version) return m.version;
+    }
+  } catch {
+    // Fallback below
+  }
+  return "0.3.0";
 }
 
 async function init() {
+  const receiptEngine = globalThis.MitchSurfaceReceipt;
+  const collectorVersion = getManifestVersion();
+
   try {
-    const hasExtensionTabs = typeof chrome !== "undefined" && chrome.tabs && typeof chrome.tabs.query === "function";
+    const hasExtensionTabs =
+      typeof chrome !== "undefined" &&
+      chrome.tabs &&
+      typeof chrome.tabs.query === "function" &&
+      chrome.runtime &&
+      Boolean(chrome.runtime.id);
+
     if (!hasExtensionTabs) {
-      await initStandalonePreview();
+      await initStandalonePreview(collectorVersion);
       return;
     }
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab || !tab.url || !/^https?:\/\//i.test(tab.url)) {
-      renderUnsupported();
+      const unsupportedReceipt = receiptEngine.buildSurfaceReceiptModel({
+        collectorVersion,
+        mode: "extension",
+        scanStatus: "unsupported",
+        url: (tab && tab.url) || null,
+        title: (tab && tab.title) || "Restricted browser page"
+      });
+      renderReceipt(unsupportedReceipt);
       return;
     }
 
     const url = new URL(tab.url);
-    $("domain").textContent = url.hostname;
-    $("protocol").textContent = url.protocol.replace(":", "").toUpperCase();
-    $("pageTitle").textContent = tab.title || "Untitled page";
-
     const [cookies, contentData, requestData, permissions] = await Promise.all([
       getCookies(url),
       getContentData(tab.id),
@@ -275,409 +240,490 @@ async function init() {
       getPermissions()
     ]);
 
-    const combinedRequestData = combineRequestData(requestData, contentData.requests);
-    const analysis = buildAnalysis(url, cookies, contentData, combinedRequestData, permissions);
-    renderAnalysis(analysis);
-    $("scanState").textContent = "Observed";
+    const combinedNetwork = receiptEngine.combineNetworkSources(
+      requestData,
+      contentData && contentData.available ? contentData.requests : { available: false }
+    );
+    const observationWindowMs = Math.max(
+      (requestData && requestData.observationWindowMs) || 0,
+      (contentData && contentData.observationWindowMs) || 0
+    );
+
+    const receipt = receiptEngine.buildSurfaceReceiptModel({
+      collectorVersion,
+      mode: "extension",
+      url,
+      title: tab.title || "Untitled page",
+      cookies,
+      content: contentData,
+      network: combinedNetwork,
+      permissions,
+      observationWindowMs
+    });
+
+    renderReceipt(receipt);
   } catch (error) {
     console.error(error);
-    $("scanState").textContent = "Limited";
-    $("scoreCategory").textContent = "Some browser-visible surfaces could not be read on this page.";
+    if (receiptEngine) {
+      const errReceipt = receiptEngine.buildSurfaceReceiptModel({
+        collectorVersion,
+        mode: "extension",
+        scanStatus: "error",
+        limitations: ["Unexpected error during popup scan orchestration."]
+      });
+      renderReceipt(errReceipt);
+    }
   }
 }
 
-async function initStandalonePreview() {
+async function initStandalonePreview(collectorVersion) {
+  const receiptEngine = globalThis.MitchSurfaceReceipt;
   const url = new URL(window.location.href);
-  $("domain").textContent = url.hostname || "localhost";
-  $("protocol").textContent = url.protocol.replace(":", "").toUpperCase();
-  $("pageTitle").textContent = "AskMI Wallet / Live Preview";
+  let cookieAvailable = true;
+  let cookieCount = 0;
+  try {
+    cookieCount = document.cookie ? document.cookie.split(";").filter(Boolean).length : 0;
+  } catch {
+    cookieAvailable = false;
+  }
 
-  const cookieCount = document.cookie ? document.cookie.split(";").filter(Boolean).length : 0;
-  const cookies = { total: cookieCount, firstParty: cookieCount, thirdParty: 0 };
-  const localCount = window.localStorage ? window.localStorage.length : 0;
-  const sessionCount = window.sessionStorage ? window.sessionStorage.length : 0;
-  const contentData = {
-    storage: {
-      localStorage: localCount > 0 ? `${localCount} keys` : "Not Detected",
-      sessionStorage: sessionCount > 0 ? `${sessionCount} keys` : "Not Detected"
-    },
-    fingerprinting: {
-      canvas: false,
-      webgl: false,
-      audio: false,
-      webrtc: false,
-      evalAttempt: false
-    },
-    csp: {
-      hasMetaCsp: true,
-      metaBlocksEval: true,
-      evalBlockedCount: 0,
-      totalViolationCount: 0,
-      violatedDirectives: []
-    },
-    visibilityLayer: {
-      highestLayer: "None Detected",
-      counts: { vulnerable: 0, grundversorgung: 0, welt: 0 },
-      findings: [],
-      proofSuggestion: null
-    },
-    screen: window.screen ? `${window.screen.width} × ${window.screen.height}` : "Unknown",
-    language: navigator.language || "Unknown",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
-    userAgent: navigator.userAgent || "Unknown"
-  };
-  const requestData = { thirdPartyRequestCount: 0, thirdPartyDomains: [] };
+  let localVal = "Unavailable";
+  let sessionVal = "Unavailable";
+  try {
+    const lc = window.localStorage ? window.localStorage.length : 0;
+    localVal = lc > 0 ? `${lc} keys` : "Not Detected";
+  } catch {
+    localVal = "Unavailable";
+  }
+  try {
+    const sc = window.sessionStorage ? window.sessionStorage.length : 0;
+    sessionVal = sc > 0 ? `${sc} keys` : "Not Detected";
+  } catch {
+    sessionVal = "Unavailable";
+  }
+
   const permissions = await getPermissions();
-  const analysis = buildAnalysis(url, cookies, contentData, requestData, permissions);
-  renderAnalysis(analysis);
-  $("scanState").textContent = "Observed";
-}
+  const receipt = receiptEngine.buildSurfaceReceiptModel({
+    collectorVersion,
+    mode: "preview",
+    scanStatus: "preview",
+    url: /^https?:\/\//i.test(url.href) ? url : "http://localhost/",
+    title: "Standalone Preview (Local Tab)",
+    cookies: cookieAvailable
+      ? { available: true, total: cookieCount, firstParty: cookieCount, thirdParty: 0 }
+      : { available: false, reason: "document-cookie-unavailable" },
+    content: {
+      available: true,
+      storage: { localStorage: localVal, sessionStorage: sessionVal },
+      fingerprinting: {
+        canvas: false,
+        webgl: false,
+        audio: false,
+        webrtc: false,
+        evalAttempt: false
+      },
+      csp: {
+        hasMetaCsp: false,
+        metaBlocksEval: false,
+        evalBlockedCount: 0,
+        totalViolationCount: 0,
+        violatedDirectives: []
+      },
+      visibilityLayer: {
+        highestLayer: "None Detected",
+        counts: { vulnerable: 0, grundversorgung: 0, welt: 0 },
+        findings: [],
+        proofSuggestion: null
+      },
+      screen: window.screen ? `${window.screen.width} × ${window.screen.height}` : "Unknown",
+      language: navigator.language || "Unknown",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
+      userAgent: navigator.userAgent || "Unknown"
+    },
+    network: {
+      available: true,
+      thirdPartyRequestCount: 0,
+      domainCounts: {}
+    },
+    permissions,
+    observationWindowMs: 0
+  });
 
-function renderUnsupported() {
-  $("scanState").textContent = "Unsupported";
-  $("scoreValue").textContent = "0";
-  $("scoreCategory").textContent = "Open an HTTP or HTTPS page to inspect browser-visible surfaces.";
-  $("scoreArc").style.strokeDashoffset = "326.73";
+  renderReceipt(receipt);
 }
 
 async function getCookies(url) {
-  const cookies = await chrome.cookies.getAll({ url: url.href });
-  const firstParty = cookies.filter((cookie) => sameRegistrableHost(cookie.domain, url.hostname)).length;
-  return {
-    total: cookies.length,
-    firstParty,
-    thirdParty: Math.max(0, cookies.length - firstParty)
-  };
+  try {
+    if (!chrome.cookies || typeof chrome.cookies.getAll !== "function") {
+      return { available: false, reason: "cookies-api-missing" };
+    }
+    const cookies = await chrome.cookies.getAll({ url: url.href });
+    const firstParty = cookies.filter((cookie) => sameRegistrableHost(cookie.domain, url.hostname)).length;
+    return {
+      available: true,
+      total: cookies.length,
+      firstParty,
+      thirdParty: Math.max(0, cookies.length - firstParty)
+    };
+  } catch {
+    return { available: false, reason: "cookies-query-failed" };
+  }
 }
 
 async function getContentData(tabId) {
   try {
-    return await chrome.tabs.sendMessage(tabId, { type: "MITCH_COLLECT_SURFACES" });
+    const response = await chrome.tabs.sendMessage(tabId, { type: "MITCH_COLLECT_SURFACES" });
+    if (!response || typeof response !== "object") {
+      return { available: false, reason: "empty-content-response" };
+    }
+    return { ...response, available: response.available !== false };
   } catch {
-    return {
-      storage: { localStorage: "Unknown", sessionStorage: "Unknown" },
-      fingerprinting: { canvas: false, webgl: false, audio: false, webrtc: false, evalAttempt: false },
-      csp: { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] },
-      visibilityLayer: { highestLayer: "Unknown", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }, findings: [], proofSuggestion: null },
-      screen: null,
-      language: null,
-      timezone: null,
-      userAgent: null
-    };
+    return { available: false, reason: "content-script-unreachable" };
   }
 }
 
 async function getRequestData(tabId) {
   try {
     const response = await chrome.runtime.sendMessage({ type: "MITCH_GET_TAB_REQUESTS", tabId });
-    return response || { thirdPartyRequestCount: 0, thirdPartyDomains: [] };
+    if (!response || typeof response !== "object") {
+      return { available: false, reason: "empty-background-response" };
+    }
+    return { ...response, available: response.available !== false };
   } catch {
-    return { thirdPartyRequestCount: 0, thirdPartyDomains: [] };
+    return { available: false, reason: "background-worker-unreachable" };
   }
 }
 
 async function getPermissions() {
-  const results = {};
-  await Promise.all(permissionQueries.map(async (item) => {
-    try {
-      const status = await navigator.permissions.query({ name: item.name });
-      results[item.key] = normalizePermissionState(status.state);
-    } catch {
-      results[item.key] = "Unknown";
-    }
-  }));
+  if (typeof navigator === "undefined" || !navigator.permissions || typeof navigator.permissions.query !== "function") {
+    return { available: false };
+  }
+  const results = { available: true };
+  await Promise.all(
+    permissionQueries.map(async (item) => {
+      try {
+        const status = await navigator.permissions.query({ name: item.name });
+        results[item.key] = normalizePermissionState(status.state);
+      } catch {
+        results[item.key] = "Unavailable";
+      }
+    })
+  );
   return results;
 }
 
-function classifyThirdPartyDomain(domain) {
-  for (const rule of KNOWN_TRACKER_PATTERNS) {
-    if (rule.pattern.test(domain)) {
-      return { isTracker: true, category: rule.category, stateLabel: "Tracker", stateClass: "detected" };
-    }
-  }
-  return { isTracker: false, category: "External Resource / CDN", stateLabel: "External", stateClass: "prompt" };
-}
+function renderReceipt(receipt) {
+  latestReceipt = receipt;
 
-function buildAnalysis(url, cookies, contentData, requestData, permissions) {
-  const fingerprinting = contentData.fingerprinting || {};
-  const csp = contentData.csp || { hasMetaCsp: false, metaBlocksEval: false, evalBlockedCount: 0, totalViolationCount: 0, violatedDirectives: [] };
-  const visibilityLayer = contentData.visibilityLayer || { highestLayer: "None Detected", counts: { vulnerable: 0, grundversorgung: 0, welt: 0 }, findings: [], proofSuggestion: null };
-  const detectedFingerprintCount = Object.values(fingerprinting).filter(Boolean).length;
-  const grantedPermissionCount = Object.values(permissions).filter((state) => state === "Granted").length;
-  const promptPermissionCount = Object.values(permissions).filter((state) => state === "Prompt").length;
-  const thirdPartyDomains = (requestData && requestData.thirdPartyDomains) || [];
-  const thirdPartyRequestCount = requestData.thirdPartyRequestCount || thirdPartyDomains.length || 0;
-  const classifiedDomains = thirdPartyDomains.map((domain) => ({
-    domain,
-    ...classifyThirdPartyDomain(domain)
-  }));
-  const knownTrackerCount = classifiedDomains.filter((d) => d.isTracker).length;
-
-  const score = Math.min(100, Math.round(
-    Math.min(30, cookies.total * 2) +
-    Math.min(25, thirdPartyRequestCount * 3 + knownTrackerCount * 4) +
-    detectedFingerprintCount * 10 +
-    grantedPermissionCount * 8 +
-    promptPermissionCount * 2
-  ));
-
-  return {
-    url,
-    cookies,
-    storage: contentData.storage || { localStorage: "Unknown", sessionStorage: "Unknown" },
-    fingerprinting,
-    csp,
-    visibilityLayer,
-    permissions,
-    requestData: {
-      ...requestData,
-      thirdPartyRequestCount,
-      thirdPartyDomains,
-      classifiedDomains,
-      knownTrackerCount
-    },
-    score,
-    category: scoreCategory(score),
-    context: contentData
+  // 1. Scan State Pill & Website Provenance
+  const scanPill = $("scanState");
+  const statusMap = {
+    complete: { text: "Complete Scan", cls: "status-pill" },
+    limited: { text: "Limited Scan", cls: "status-pill pill-warning" },
+    preview: { text: "Preview (Mock)", cls: "status-pill pill-warning" },
+    unsupported: { text: "Unsupported Tab", cls: "status-pill pill-danger" },
+    error: { text: "Scan Error", cls: "status-pill pill-danger" }
   };
+  const pillMeta = statusMap[receipt.collector.scanStatus] || statusMap.limited;
+  scanPill.textContent = pillMeta.text;
+  scanPill.className = pillMeta.cls;
+
+  $("domain").textContent = receipt.page.origin;
+  $("protocol").textContent = receipt.page.protocol;
+  $("pageTitle").textContent = receipt.page.title;
+  $("collectorProvenance").textContent = `v${receipt.collector.version} · ${receipt.collector.ruleSetVersion} · ${receipt.collector.mode}`;
+
+  // 2. Cookies & Storage (never displaying 0 when unavailable!)
+  $("cookieTotal").textContent = receipt.cookies.available ? String(receipt.cookies.total) : "Unavailable";
+  $("firstPartyCookies").textContent = receipt.cookies.available ? String(receipt.cookies.firstParty) : "Unavailable";
+  $("thirdPartyCookies").textContent = receipt.cookies.available ? String(receipt.cookies.thirdParty) : "Unavailable";
+
+  $("localStorageUsage").textContent = receipt.storage.localStorage.label;
+  $("sessionStorageUsage").textContent = receipt.storage.sessionStorage.label;
+
+  // 3. Visibility Layer & Proof Bridge
+  renderVisibilityLayer(receipt.visibility);
+
+  // 4. Third-Party Network Activity (separated domains vs requests vs trackers)
+  renderThirdPartyDomains(receipt.network);
+
+  // 5. Fingerprinting
+  renderSignals(
+    "fingerprintList",
+    receipt.fingerprinting.map((fp) => {
+      if (fp.evidenceState === "unavailable") {
+        return {
+          name: fp.label,
+          state: "Unavailable",
+          stateText: "Unavailable",
+          meta: "Check could not run because the page content script was unreachable."
+        };
+      }
+      const isObserved = fp.observed === true;
+      return {
+        name: fp.label,
+        state: isObserved ? "Observed" : "Not Observed",
+        stateText: isObserved ? "Observed" : "Not Observed",
+        meta:
+          fp.key === "evalAttempt"
+            ? receipt.csp.metaBlocksEval
+              ? "Meta CSP restricts dynamic eval(); violation counter active."
+              : "Passive listener for blocked eval()/script-src CSP events (not observed ≠ absent)."
+            : isObserved
+              ? "Call observed in MAIN world (payload/purpose not verified)."
+              : "No call observed during this scan (not observed ≠ absent)."
+      };
+    })
+  );
+
+  // 6. Permissions
+  renderSignals(
+    "permissionList",
+    receipt.permissions.map((perm) => ({
+      name: perm.label,
+      state: perm.state,
+      stateText: perm.state,
+      meta:
+        perm.state === "Unavailable"
+          ? "Permission query not supported or unavailable in this browser context."
+          : "Browser Permissions API state (Granted ≠ active readout verified)."
+    }))
+  );
+
+  // 7. Score & Dimensions
+  renderScoreSection(receipt.surfaceScore);
+
+  // 8. Five-State Evidence Report
+  renderFiveStateReport(receipt.report);
 }
 
-function combineRequestData(backgroundData, contentData) {
-  const domains = new Set([
-    ...((backgroundData && backgroundData.thirdPartyDomains) || []),
-    ...((contentData && contentData.thirdPartyDomains) || [])
-  ]);
-  return {
-    thirdPartyRequestCount: Math.max(
-      (backgroundData && backgroundData.thirdPartyRequestCount) || 0,
-      (contentData && contentData.thirdPartyRequestCount) || 0,
-      domains.size
-    ),
-    thirdPartyDomains: Array.from(domains).sort()
-  };
-}
-
-function renderAnalysis(analysis) {
-  latestAnalysis = analysis;
-  $("cookieTotal").textContent = analysis.cookies.total;
-  $("firstPartyCookies").textContent = analysis.cookies.firstParty;
-  $("thirdPartyCookies").textContent = analysis.cookies.thirdParty;
-  $("localStorageUsage").textContent = analysis.storage.localStorage;
-  $("sessionStorageUsage").textContent = analysis.storage.sessionStorage;
-
-  renderVisibilityLayer(analysis.visibilityLayer);
-  renderThirdPartyDomains(analysis.requestData);
-
-  renderSignals("fingerprintList", Object.entries(fingerprintLabels).map(([key, label]) => ({
-    name: label,
-    state: analysis.fingerprinting[key] ? "Detected" : "Not Detected",
-    meta: key === "evalAttempt"
-      ? (analysis.csp.metaBlocksEval
-          ? "Blocked dynamic string evaluation (CSP active)."
-          : "Passive CSP violation listener for dynamic eval() calls.")
-      : "Active API invocation observed on this page."
-  })));
-
-  renderSignals("permissionList", permissionQueries.map((item) => ({
-    name: item.label,
-    state: analysis.permissions[item.key] || "Unknown",
-    meta: "Browser permission state visible to this extension."
-  })));
-
-  renderScore(analysis.score, analysis.category);
-  renderReport(analysis);
-}
-
-function renderVisibilityLayer(visibilityLayer) {
+function renderVisibilityLayer(visibility) {
   const badgeEl = $("visibilityLayerBadge");
-  const listEl = $("visibilityLayerList");
   const bridgeCard = $("proofBridgeCard");
-  if (!badgeEl || !listEl) return;
+  if (!badgeEl) return;
 
-  const highest = (visibilityLayer && visibilityLayer.highestLayer) || "None Detected";
+  if (!visibility || !visibility.available) {
+    badgeEl.textContent = "Unavailable";
+    badgeEl.className = "status-pill pill-warning";
+    if (bridgeCard) bridgeCard.hidden = true;
+    syncWalletDeepLinkButtonVisibility();
+    renderSignals("visibilityLayerList", [
+      {
+        name: "Form field inspection unavailable",
+        state: "Unavailable",
+        stateText: "Unavailable",
+        meta: "DOM input metadata could not be inspected on this tab (never treated as clean)."
+      }
+    ]);
+    return;
+  }
+
+  const highest = visibility.highestLayer === "None Detected" ? "None Observed" : visibility.highestLayer;
   badgeEl.textContent = highest;
+  badgeEl.className =
+    visibility.highestLayer === "VULNERABLE (High)"
+      ? "status-pill pill-danger"
+      : visibility.highestLayer === "GRUNDVERSORGUNG (Medium)"
+        ? "status-pill pill-warning"
+        : "status-pill";
 
-  const suggestion = visibilityLayer && visibilityLayer.proofSuggestion;
+  const suggestion = visibility.proofSuggestion;
   if (bridgeCard) {
     const hasSuggestion = Boolean(
       suggestion &&
-      Array.isArray(suggestion.suggestedMinimalClaims) &&
-      suggestion.suggestedMinimalClaims.length > 0
+        Array.isArray(suggestion.suggestedMinimalClaims) &&
+        suggestion.suggestedMinimalClaims.length > 0
     );
     bridgeCard.hidden = !hasSuggestion;
   }
   syncWalletDeepLinkButtonVisibility();
 
-  const findings = (visibilityLayer && visibilityLayer.findings) || [];
-  if (findings.length === 0) {
-    renderSignals("visibilityLayerList", [{
-      name: "No sensitive data input forms detected",
-      state: "Not Detected",
-      stateText: "Clean",
-      meta: "No WELT, GRUNDVERSORGUNG, or VULNERABLE form inputs found on this page."
-    }]);
+  if (!visibility.findings || visibility.findings.length === 0) {
+    renderSignals("visibilityLayerList", [
+      {
+        name: "No matching form input metadata observed",
+        state: "Not Observed",
+        stateText: "Not Observed",
+        meta: "No WELT, GRUNDVERSORGUNG, or VULNERABLE input attributes observed at scan time (not observed ≠ absent)."
+      }
+    ]);
     return;
   }
 
-  renderSignals("visibilityLayerList", findings.map((item) => ({
-    name: item.label,
-    state: item.state || "Prompt",
-    stateText: item.layer.split(" ")[0],
-    meta: item.hint
-  })));
+  renderSignals(
+    "visibilityLayerList",
+    visibility.findings.map((item) => ({
+      name: item.label,
+      state: item.layer.startsWith("VULNERABLE") ? "Observed" : "Potential",
+      stateText: item.layer.split(" ")[0],
+      meta: `${item.hint} (Source: DOM field metadata; entered values not read.)`
+    }))
+  );
 }
 
-function renderThirdPartyDomains(requestData) {
+function renderThirdPartyDomains(network) {
   const countEl = $("thirdPartyDomainCount");
-  const listEl = $("thirdPartyDomainList");
-  if (!countEl || !listEl) return;
+  if (!countEl) return;
 
-  const domains = (requestData && requestData.classifiedDomains) || [];
-  const trackerCount = (requestData && requestData.knownTrackerCount) || 0;
-  countEl.textContent = trackerCount > 0
-    ? `${domains.length} domains (${trackerCount} tracker)`
-    : `${domains.length} domain${domains.length === 1 ? "" : "s"}`;
-
-  if (domains.length === 0) {
-    renderSignals("thirdPartyDomainList", [{
-      name: "Zero third-party domains contacted",
-      state: "Not Detected",
-      meta: "All observed requests stayed on the first-party origin."
-    }]);
+  if (!network || !network.available) {
+    countEl.textContent = "Unavailable";
+    countEl.className = "status-pill pill-warning";
+    renderSignals("thirdPartyDomainList", [
+      {
+        name: "Third-party network log unavailable",
+        state: "Unavailable",
+        stateText: "Unavailable",
+        meta: "Network request counts could not be retrieved for this tab."
+      }
+    ]);
     return;
   }
 
-  renderSignals("thirdPartyDomainList", domains.slice(0, 15).map((item) => ({
-    name: item.domain,
-    state: item.isTracker ? "Detected" : "Prompt",
-    stateText: item.stateLabel,
-    meta: item.category
-  })));
+  countEl.className = network.knownTrackerDomainCount > 0 ? "status-pill pill-warning" : "status-pill";
+  const trackerPart = network.knownTrackerDomainCount > 0 ? ` · ${network.knownTrackerDomainCount} tracker-rule` : "";
+  countEl.textContent = `${network.uniqueThirdPartyDomainCount} domain${network.uniqueThirdPartyDomainCount === 1 ? "" : "s"} · ${network.thirdPartyRequestCount} req${trackerPart}`;
+
+  if (network.domains.length === 0) {
+    renderSignals("thirdPartyDomainList", [
+      {
+        name: "No third-party requests observed during this window",
+        state: "Not Observed",
+        stateText: "Not Observed",
+        meta: "No external domain requests were recorded during this scan window (not observed ≠ absent)."
+      }
+    ]);
+    return;
+  }
+
+  renderSignals(
+    "thirdPartyDomainList",
+    network.domains.slice(0, 15).map((item) => ({
+      name: `${item.domain} (${item.requestCount} req)`,
+      state: item.isTracker ? "Observed" : "Potential",
+      stateText: item.isTracker ? "Rule Match" : "External",
+      meta: `${item.classification} (${item.classificationSource}). Payload, retention, and sale not verified.`
+    }))
+  );
 }
 
 function renderSignals(containerId, signals) {
   const container = $(containerId);
   if (!container) return;
-  container.replaceChildren(...signals.map((signal) => {
-    const row = document.createElement("div");
-    row.className = "signal-item";
+  container.replaceChildren(
+    ...signals.map((signal) => {
+      const row = document.createElement("div");
+      row.className = "signal-item";
 
-    const text = document.createElement("div");
-    const name = document.createElement("div");
-    const meta = document.createElement("div");
-    name.className = "signal-name";
-    meta.className = "signal-meta";
-    name.textContent = signal.name;
-    meta.textContent = signal.meta;
-    text.append(name, meta);
+      const text = document.createElement("div");
+      const name = document.createElement("div");
+      const meta = document.createElement("div");
+      name.className = "signal-name";
+      meta.className = "signal-meta";
+      name.textContent = signal.name;
+      meta.textContent = signal.meta;
+      text.append(name, meta);
 
-    const state = document.createElement("span");
-    const cssKey = signal.state.toLowerCase().replace(/\s+/g, "-");
-    state.className = `signal-state state-${cssKey}`;
-    state.textContent = signal.stateText || signal.state;
-    row.append(text, state);
-    return row;
-  }));
+      const state = document.createElement("span");
+      const cssKey = signal.state.toLowerCase().replace(/\s+/g, "-");
+      state.className = `signal-state state-${cssKey}`;
+      state.textContent = signal.stateText || signal.state;
+      row.append(text, state);
+      return row;
+    })
+  );
 }
 
-function renderScore(score, category) {
+function renderScoreSection(surfaceScore) {
   const circumference = 326.73;
-  const offset = circumference - (score / 100) * circumference;
   const arc = $("scoreArc");
-  $("scoreValue").textContent = score;
-  $("scoreCategory").textContent = category;
+  const cov = surfaceScore.dimensions.observationCoverage;
+  const exp = surfaceScore.dimensions.technicalExposure;
+  const qual = surfaceScore.dimensions.evidenceQuality;
+
+  $("scoreCoverage").textContent = `${cov.percent}% (${cov.checkedSources}/${cov.totalSources})`;
+  $("scoreExposure").textContent = exp.value === null ? "Unavailable" : `${exp.value}/100`;
+  $("scoreEvidence").textContent = `${qual.directObservedCount} obs · ${qual.unavailableCount} unavail`;
+
+  if (surfaceScore.value === null) {
+    $("scoreValue").textContent = "--";
+    $("scoreCategory").textContent = "Unavailable — scan did not inspect an HTTP/HTTPS page.";
+    arc.style.strokeDashoffset = String(circumference);
+    arc.style.stroke = "var(--muted)";
+    $("scoreComponents").textContent = "Components unavailable (missing evidence is never counted as zero).";
+    return;
+  }
+
+  const offset = circumference - (surfaceScore.value / 100) * circumference;
+  $("scoreValue").textContent = String(surfaceScore.value);
+  $("scoreCategory").textContent = surfaceScore.category;
   arc.style.strokeDashoffset = String(offset);
-  arc.style.stroke = score > 75 ? "var(--danger)" : score > 50 ? "var(--warning)" : score > 25 ? "var(--accent-2)" : "var(--accent)";
+  arc.style.stroke =
+    surfaceScore.value > 75
+      ? "var(--danger)"
+      : surfaceScore.value > 50
+        ? "var(--warning)"
+        : surfaceScore.value > 25
+          ? "var(--accent-2)"
+          : "var(--accent)";
+
+  const c = surfaceScore.components;
+  const fmt = (v) => (v === null ? "n/a" : `+${v}`);
+  $("scoreComponents").textContent = `Components: cookies ${fmt(c.cookies)} · 3P req ${fmt(c.thirdPartyRequests)} · tracker rules ${fmt(c.knownTrackerDomains)} · FP calls ${fmt(c.fingerprintingCalls)} · perms ${fmt(c.grantedPermissions)}/${fmt(c.promptPermissions)}`;
 }
 
-function renderReport(analysis) {
-  const observed = [];
-  if (analysis.cookies.total > 0) observed.push(`${analysis.cookies.total} cookies detected`);
-  if (analysis.cookies.thirdParty > 0) observed.push(`${analysis.cookies.thirdParty} third-party cookies detectable for this page`);
-  if ((analysis.requestData.thirdPartyRequestCount || 0) > 0) {
-    const trackerSuffix = analysis.requestData.knownTrackerCount > 0
-      ? ` (${analysis.requestData.knownTrackerCount} known tracker domain(s))`
-      : "";
-    observed.push(`${analysis.requestData.thirdPartyRequestCount} third-party browser requests observed${trackerSuffix}`);
-  }
-  if (analysis.storage.localStorage !== "Not Detected") observed.push(`localStorage usage: ${analysis.storage.localStorage}`);
-  if (analysis.storage.sessionStorage !== "Not Detected") observed.push(`sessionStorage usage: ${analysis.storage.sessionStorage}`);
-  if (analysis.csp && analysis.csp.metaBlocksEval) {
-    observed.push("Page CSP blocks dynamic eval() execution");
-  }
-  if (analysis.csp && analysis.csp.evalBlockedCount > 0) {
-    observed.push(`${analysis.csp.evalBlockedCount} blocked eval() / script-src CSP violation(s) observed`);
-  }
-  if (analysis.visibilityLayer && analysis.visibilityLayer.highestLayer && analysis.visibilityLayer.highestLayer !== "None Detected" && analysis.visibilityLayer.highestLayer !== "Unknown") {
-    observed.push(`Form input sensitivity (AskMI Visibility Layer): ${analysis.visibilityLayer.highestLayer}`);
-  }
-  if (
-    analysis.visibilityLayer &&
-    analysis.visibilityLayer.proofSuggestion &&
-    Array.isArray(analysis.visibilityLayer.proofSuggestion.suggestedMinimalClaims)
-  ) {
-    observed.push(
-      `AskMI Proof Bridge suggestion available: ${analysis.visibilityLayer.proofSuggestion.suggestedMinimalClaims.join(", ")}`
-    );
-  }
-  Object.entries(fingerprintLabels).forEach(([key, label]) => {
-    if (key !== "evalAttempt" && analysis.fingerprinting[key]) observed.push(`${label} call observed`);
-  });
-  permissionQueries.forEach((item) => {
-    const state = analysis.permissions[item.key];
-    if (state === "Granted") observed.push(`${item.label} permission granted`);
-  });
-  if (observed.length === 0) observed.push("No cookies, permission grants, storage usage, or listed fingerprinting surfaces detected");
+function renderFiveStateReport(report) {
+  const obsItems =
+    report.observed.length > 0
+      ? report.observed.map((i) => i.summary)
+      : ["Not observed during this scan (not observed ≠ absent)."];
+  fillList("observedFacts", obsItems, "observed", "●");
 
-  const potential = [
-    "IP address visible to contacted servers",
-    `Browser version via user agent: ${shorten(analysis.context.userAgent || "Unknown", 72)}`,
-    `Screen resolution: ${analysis.context.screen || "Unknown"}`,
-    `Language: ${analysis.context.language || "Unknown"}`,
-    `Timezone: ${analysis.context.timezone || "Unknown"}`
-  ];
+  const declItems =
+    report.declared.length > 0
+      ? report.declared.map(
+          (i) => `${i.summary} [source: ${i.sourceReference}, verified: ${i.independentlyVerified ? "yes" : "no"}]`
+        )
+      : ["No cited provider declarations recorded in this scan."];
+  fillList("declaredStatements", declItems, "declared", "◈");
 
-  const unknown = [
-    "What is stored on company servers",
-    "Retention policies",
-    "Internal profiling",
-    "Data resale"
-  ];
+  const potItems =
+    report.potential.length > 0
+      ? report.potential.map((i) => i.summary)
+      : ["Unavailable for this scan status."];
+  fillList("potentialAccess", potItems, "potential", "◌");
 
-  fillList("observedFacts", observed, "observed", "✓");
-  fillList("potentialAccess", potential, "observed", "✓");
-  fillList("unknowns", unknown, "unknown", "✗");
+  const unkItems = report.unknown.map((i) => i.summary);
+  fillList("unknowns", unkItems, "unknown", "?");
+
+  const unavailItems =
+    report.unavailable.length > 0
+      ? report.unavailable.map((i) => `${i.summary} (${i.reason || "unavailable"})`)
+      : ["None — all configured browser checks responded."];
+  fillList("unavailableChecks", unavailItems, "unavailable", "⊘");
 }
 
 function fillList(id, items, className, prefix) {
-  $(id).replaceChildren(...items.map((item) => {
-    const li = document.createElement("li");
-    li.className = className;
-    li.textContent = `${prefix} ${item}`;
-    return li;
-  }));
-}
-
-function scoreCategory(score) {
-  if (score <= 25) return "Low Surface";
-  if (score <= 50) return "Moderate Surface";
-  if (score <= 75) return "High Surface";
-  return "Very High Surface";
+  const el = $(id);
+  if (!el) return;
+  el.replaceChildren(
+    ...items.map((item) => {
+      const li = document.createElement("li");
+      li.className = className;
+      li.textContent = `${prefix} ${item}`;
+      return li;
+    })
+  );
 }
 
 function normalizePermissionState(state) {
   if (state === "granted") return "Granted";
   if (state === "denied") return "Denied";
   if (state === "prompt") return "Prompt";
-  return "Unknown";
+  return "Unavailable";
 }
 
 function sameRegistrableHost(cookieDomain, pageHost) {
   const cleanCookieDomain = cookieDomain.replace(/^\./, "").toLowerCase();
   const cleanPageHost = pageHost.toLowerCase();
   return cleanPageHost === cleanCookieDomain || cleanPageHost.endsWith(`.${cleanCookieDomain}`);
-}
-
-function shorten(value, max) {
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
