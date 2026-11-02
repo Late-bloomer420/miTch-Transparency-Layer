@@ -1,3 +1,5 @@
+const collectorStartedAt = Date.now();
+
 const cspObservations = {
   evalBlockedCount: 0,
   totalViolationCount: 0,
@@ -74,6 +76,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 function collectAllSurfaces() {
   return {
+    available: true,
+    observationWindowMs: Math.max(0, Date.now() - collectorStartedAt),
     storage: collectStorage(),
     fingerprinting: collectFingerprintingSurfaces(),
     csp: collectCspSurface(),
@@ -99,7 +103,7 @@ function describeStorage(storage) {
     const count = storage.length;
     return count > 0 ? `${count} keys` : "Not Detected";
   } catch {
-    return "Unknown";
+    return "Unavailable";
   }
 }
 
@@ -185,25 +189,34 @@ function collectVisibilityLayer() {
 
 function collectVisibleRequests() {
   try {
-    const pageHost = window.location.hostname;
-    const domains = new Set();
+    const pageHost = window.location.hostname.toLowerCase();
+    const domainCounts = {};
+    let totalThirdParty = 0;
+
     performance.getEntriesByType("resource").forEach((entry) => {
       try {
-        const host = new URL(entry.name).hostname;
-        if (host && !sameSite(host, pageHost)) domains.add(host);
+        const host = new URL(entry.name).hostname.toLowerCase();
+        if (host && !sameSite(host, pageHost)) {
+          totalThirdParty += 1;
+          domainCounts[host] = (domainCounts[host] || 0) + 1;
+        }
       } catch {
         return;
       }
     });
 
     return {
-      thirdPartyRequestCount: domains.size,
-      thirdPartyDomains: Array.from(domains).sort()
+      available: true,
+      thirdPartyRequestCount: totalThirdParty,
+      thirdPartyDomains: Object.keys(domainCounts).sort(),
+      domainCounts
     };
   } catch {
     return {
+      available: false,
       thirdPartyRequestCount: 0,
-      thirdPartyDomains: []
+      thirdPartyDomains: [],
+      domainCounts: {}
     };
   }
 }

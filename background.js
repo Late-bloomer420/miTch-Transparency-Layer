@@ -25,9 +25,24 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message && message.type === "MITCH_GET_TAB_REQUESTS") {
     const entry = tabRequests.get(message.tabId);
+    if (!entry) {
+      sendResponse({
+        available: true,
+        thirdPartyRequestCount: 0,
+        thirdPartyDomains: [],
+        domainCounts: {},
+        unattributedRequestCount: 0,
+        observationWindowMs: 0
+      });
+      return true;
+    }
     sendResponse({
-      thirdPartyRequestCount: entry ? entry.thirdPartyCount : 0,
-      thirdPartyDomains: entry ? Array.from(entry.thirdPartyDomains).sort() : []
+      available: true,
+      thirdPartyRequestCount: entry.thirdPartyCount,
+      thirdPartyDomains: Array.from(entry.domainCounts.keys()).sort(),
+      domainCounts: Object.fromEntries(entry.domainCounts),
+      unattributedRequestCount: entry.unattributedCount,
+      observationWindowMs: Math.max(0, Date.now() - entry.startedAt)
     });
     return true;
   }
@@ -36,15 +51,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const tabId = sender.tab.id;
     const entry = getEntry(tabId);
     entry.pageSurfaces = message.payload || {};
-    if (
-      entry.pageSurfaces.requests &&
-      Array.isArray(entry.pageSurfaces.requests.thirdPartyDomains)
-    ) {
-      entry.pageSurfaces.requests.thirdPartyDomains.forEach((domain) => {
-        if (entry.thirdPartyDomains.size < MAX_DOMAINS_PER_TAB) {
-          entry.thirdPartyDomains.add(domain);
+    if (entry.pageSurfaces.requests) {
+      const reqs = entry.pageSurfaces.requests;
+      if (reqs.domainCounts && typeof reqs.domainCounts === "object") {
+        for (const [domain, count] of Object.entries(reqs.domainCounts)) {
+          if (entry.domainCounts.has(domain) || entry.domainCounts.size < MAX_DOMAINS_PER_TAB) {
+            const prev = entry.domainCounts.get(domain) || 0;
+            const next = Number.isFinite(count) && count > 0 ? Math.floor(count) : 1;
+            entry.domainCounts.set(domain, Math.max(prev, next));
+          }
         }
-      });
+      } else if (Array.isArray(reqs.thirdPartyDomains)) {
+        reqs.thirdPartyDomains.forEach((domain) => {
+          if (entry.domainCounts.has(domain) || entry.domainCounts.size < MAX_DOMAINS_PER_TAB) {
+            entry.domainCounts.set(domain, Math.max(entry.domainCounts.get(domain) || 0, 1));
+          }
+        });
+      }
     }
     updateTabBadge(tabId);
     sendResponse({ ok: true });
@@ -55,13 +78,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function recordRequest(details) {
-  if (details.tabId < 0 || !details.initiator) return;
+  if (details.tabId < 0) return;
+
+  if (!details.initiator) {
+    const entry = getEntry(details.tabId);
+    entry.unattributedCount += 1;
+    return;
+  }
 
   let requestHost;
   let initiatorHost;
   try {
-    requestHost = new URL(details.url).hostname;
-    initiatorHost = new URL(details.initiator).hostname;
+    requestHost = new URL(details.url).hostname.toLowerCase();
+    initiatorHost = new URL(details.initiator).hostname.toLowerCase();
   } catch {
     return;
   }
@@ -70,8 +99,8 @@ function recordRequest(details) {
 
   const entry = getEntry(details.tabId);
   entry.thirdPartyCount += 1;
-  if (entry.thirdPartyDomains.size < MAX_DOMAINS_PER_TAB) {
-    entry.thirdPartyDomains.add(requestHost);
+  if (entry.domainCounts.has(requestHost) || entry.domainCounts.size < MAX_DOMAINS_PER_TAB) {
+    entry.domainCounts.set(requestHost, (entry.domainCounts.get(requestHost) || 0) + 1);
   }
   updateTabBadge(details.tabId);
 }
@@ -79,8 +108,10 @@ function recordRequest(details) {
 function getEntry(tabId) {
   if (!tabRequests.has(tabId)) {
     tabRequests.set(tabId, {
+      startedAt: Date.now(),
       thirdPartyCount: 0,
-      thirdPartyDomains: new Set(),
+      unattributedCount: 0,
+      domainCounts: new Map(),
       pageSurfaces: {}
     });
   }
@@ -103,13 +134,19 @@ function updateTabBadge(tabId) {
     const surfaces = entry.pageSurfaces || {};
     const fp = surfaces.fingerprinting || {};
     const fpCount = Object.values(fp).filter(Boolean).length;
-    const thirdPartyCount = Math.max(entry.thirdPartyCount, entry.thirdPartyDomains.size);
+    let sumDomainCounts = 0;
+    for (const c of entry.domainCounts.values()) sumDomainCounts += c;
+    const thirdPartyCount = Math.max(entry.thirdPartyCount, sumDomainCounts);
     const vis = surfaces.visibilityLayer || {};
     const highestLayer = vis.highestLayer || "None Detected";
 
     const estimatedScore = Math.min(
       100,
-      Math.round(Math.min(25, thirdPartyCount * 3) + fpCount * 10 + (highestLayer === "VULNERABLE (High)" ? 25 : highestLayer === "GRUNDVERSORGUNG (Medium)" ? 10 : 0))
+      Math.round(
+        Math.min(25, thirdPartyCount * 3) +
+          fpCount * 10 +
+          (highestLayer === "VULNERABLE (High)" ? 25 : highestLayer === "GRUNDVERSORGUNG (Medium)" ? 10 : 0)
+      )
     );
 
     let color = "#46d9b5"; // Green (Low)

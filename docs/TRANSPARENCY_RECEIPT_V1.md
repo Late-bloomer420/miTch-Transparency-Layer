@@ -253,6 +253,22 @@ Receipts must not contain:
 
 The page URL should default to origin/domain only. Query and fragment components can contain personal or secret values and require explicit redaction.
 
+### Untrusted page-controlled fields and export sanitization
+
+Several receipt inputs originate from or can be influenced by the inspected website itself and must therefore be treated as **untrusted** by all serializers, UIs, and downstream consumers:
+
+- `page.title` — controlled by the page's `<title>` / `document.title`;
+- `page.origin` and `page.domain` — derived from the navigated URL (hostnames may still reflect attacker-chosen subdomains);
+- `network.domains[].domain` — hostnames contacted by page resources or scripts;
+- `csp.violatedDirectives[]` — directive strings reported by page CSP headers/meta tags;
+- `report.declared[].summary` and `report.declared[].sourceReference` — provider-supplied text/URLs when recorded.
+
+Required sanitization rules:
+
+1. **URL redaction:** `page` records `origin`, `domain`, `protocol`, and `urlIncluded: false`. Query strings (`?...`), fragments (`#...`), credentials (`user:pass@`), and full request paths must never be written into exported Surface Receipts or Proof Suggestions.
+2. **Markdown escaping:** Every Markdown serializer (`serializeReceiptMarkdown` and `buildProofSuggestionMarkdown`) must strip ASCII control characters/newlines and backslash-escape Markdown metacharacters (`` \ ` * _ { } [ ] ( ) # + ! < > | ~ ``) on every page-derived field so pasting a receipt into GitHub, Slack, Notion, or Markdown viewers renders strictly inert text and never injects remote images or links.
+3. **DOM rendering:** UI views must bind page-derived strings exclusively via `textContent` (never `innerHTML`).
+
 ## Score rules
 
 - Call it `Surface Score`.
