@@ -18,13 +18,15 @@
         </div>
       </header>
 
+      <div id="scanModeBanner" class="scan-mode-banner" role="status" aria-live="polite" hidden></div>
+
       <section class="score-panel" aria-labelledby="score-title">
         <div class="score-main">
           <span class="section-kicker">Surface Score</span>
-          <h2 id="score-title"><span id="scoreValue">--</span><small>/100</small></h2>
+          <h2 id="score-title"><span id="scoreValue">--</span><small id="scoreScale">/100</small></h2>
           <p id="scoreCategory">Checking visible browser surfaces...</p>
           <p id="scoreSemantics" class="guardrail score-note">
-            Informational surface summary (<code>surface-score-v1</code>). Low score ≠ safe; unavailable checks are never counted as zero.
+            Informational surface summary (<code>surface-score-v1</code> · <code>visibility-rules-v1</code>). Low score ≠ safe; does not measure server collection, sharing, or sale; unavailable checks are never counted as zero.
           </p>
           <dl class="score-dimensions" aria-label="Surface Score Dimensions">
             <div><dt>Coverage</dt><dd id="scoreCoverage">--</dd></div>
@@ -51,6 +53,7 @@
           <div><dt>Protocol</dt><dd id="protocol">Unavailable</dd></div>
           <div><dt>Page Title</dt><dd id="pageTitle">Unavailable</dd></div>
           <div><dt>Collector</dt><dd id="collectorProvenance">--</dd></div>
+          <div><dt>Observed Window</dt><dd id="observationWindow">--</dd></div>
         </dl>
       </section>
 
@@ -161,6 +164,7 @@
         We show what is technically observable and technically possible. We do not claim what happens on remote servers.
       </footer>
     </main>
+    <script src="build-meta.js"></script>
     <script src="proof-bridge.js"></script>
     <script src="surface-receipt.js"></script>
     <script src="popup.js"></script>

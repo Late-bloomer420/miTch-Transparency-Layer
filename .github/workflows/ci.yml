@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Syntax, Unit Tests & Release Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check JS syntax
+        run: |
+          node --check background.js
+          node --check content.js
+          node --check page-observer.js
+          node --check popup.js
+          node --check proof-bridge.js
+          node --check surface-receipt.js
+          node --check build-meta.js
+          node --check scripts/build-release.mjs
+
+      - name: Run deterministic test suite
+        run: node --test test/*.test.mjs
+
+      - name: Verify revision-bound release package & policy parity
+        run: node scripts/build-release.mjs --verify

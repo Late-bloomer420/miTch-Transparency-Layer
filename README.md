@@ -29,8 +29,8 @@ Current status: **v0.3.0 experimental/local-only**. It is not certified, indepen
 - AskMI Data-Minimization & Visibility Layer: classifies form inputs (`WELT`, `GRUNDVERSORGUNG`, `VULNERABLE`) using field metadata only (never reading typed values)
 - AskMI Proof Bridge (v0.3): maps high-confidence over-collection (such as full Date of Birth fields) to a local, canonical AskMI minimal proof suggestion (`age_over_18`)
 - Permission surface: geolocation, notifications, camera, microphone, and clipboard
-- Transparency Surface Score from 0 to 100
-- Three-layer report: observed facts, potential access, and unknowns (exportable as Markdown or JSON Receipt)
+- Surface Score (`surface-score-v1`): informational surface summary separating observation coverage, technical exposure, and evidence quality (low score ≠ safe; unavailable checks are never counted as zero)
+- Five-state evidence report: observed, declared, potential, unknown, and unavailable checks (exportable as Markdown or JSON Surface Receipt v1)
 
 ## AskMI Proof Bridge (v0.3)
 
@@ -60,13 +60,14 @@ When a webpage form requests over-collected personal attributes (for example, a 
 
 ## Tests
 
-Run the current pure Proof Bridge tests with:
+Run the deterministic unit test suite and release-integrity verifier locally (also enforced on every push and pull request via `.github/workflows/ci.yml`):
 
 ```bash
 node --test test/*.test.mjs
+node scripts/build-release.mjs --verify
 ```
 
-This suite does not yet cover the full receipt, score, browser-observer, permission, or dynamic-page surface. That expansion is tracked in [#14](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/14), [#15](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/15), and [#17](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/17).
+Current automated coverage verifies Proof Bridge mapping (`test/proof-bridge.test.mjs`), Surface Receipt v1 normalization/redaction/Markdown escaping (`test/surface-receipt.test.mjs`), and scan provenance, Surface Score non-improvement invariants, badge failure states, and deterministic zip integrity (`test/scan-score-and-release.test.mjs`). Browser-observer isolation and PSL domain-boundary hardening are tracked in [#17](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/17) and [#22](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/22).
 
 ## Architecture and roadmap
 
@@ -79,13 +80,22 @@ This suite does not yet cover the full receipt, score, browser-observer, permiss
 
 ## Release Package
 
-The repository currently contains the historical package:
+The repository includes a deterministic, revision-bound experimental package for the current `v0.3.0` source tree:
 
 ```text
-release/mitch-transparency-layer-v0.1.zip
+release/mitch-transparency-layer-v0.3.0.zip
+release/release-manifest.json
+release/RELEASE_CHECKLIST.md
 ```
 
-It does **not** represent the current v0.3 source and must not be uploaded as the current release. A revision-bound v0.3 package, test record, and release checklist are tracked in [#14](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/14).
+Regenerate and verify the package after changing any extension runtime file or `PRIVACY_POLICY.md`:
+
+```bash
+node scripts/build-release.mjs
+node scripts/build-release.mjs --verify
+```
+
+See [release/RELEASE_CHECKLIST.md](release/RELEASE_CHECKLIST.md) for the release-binding checklist. Note: this package remains **experimental / local-only** (`v0.3.0`) and makes no certification, compliance, or production-readiness claim.
 
 ## Privacy Policy
 

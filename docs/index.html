@@ -135,12 +135,13 @@
           <li>localStorage and sessionStorage usage</li>
           <li>browser-visible network requests</li>
           <li>browser permission states</li>
-          <li>fingerprinting-related browser surfaces such as Canvas, WebGL, AudioContext, and WebRTC</li>
+          <li>fingerprinting-related browser surfaces such as Canvas, WebGL, AudioContext, WebRTC, and Content Security Policy (CSP) <code>eval()</code> status</li>
+          <li>form input attribute metadata (<code>name</code>, <code>id</code>, <code>autocomplete</code>, <code>placeholder</code>, <code>aria-label</code>, <code>type</code>) to display local data-minimization hints and AskMI Proof Bridge minimal-claim suggestions — the extension <strong>never</strong> reads, inspects, or stores values typed into form fields</li>
         </ul>
 
         <h2>Local Processing Only</h2>
-        <p>All analysis is performed locally in the user's browser.</p>
-        <p>miTch Transparency Layer does not operate a backend server, does not create user accounts, and does not transmit analyzed data to the developer or to any third party.</p>
+        <p>All analysis — including the AskMI Visibility Layer and Proof Bridge (v0.3) — is performed 100% locally in the user's browser.</p>
+        <p>miTch Transparency Layer does not operate a backend server, does not create user accounts, and does not transmit analyzed data or proof suggestions to the developer, to any remote wallet/verifier, or to any third party. Copying a report or proof suggestion writes only to the user's local clipboard when explicitly clicked by the user.</p>
 
         <h2>No Sale or Sharing of Data</h2>
         <p>miTch Transparency Layer does not sell, share, or transfer user data to third parties.</p>

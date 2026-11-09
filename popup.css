@@ -39,6 +39,30 @@ body {
   margin-bottom: 14px;
 }
 
+.scan-mode-banner {
+  margin-bottom: 12px;
+  border: 1px solid rgba(241, 198, 91, 0.44);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(241, 198, 91, 0.13);
+  color: #f6dc92;
+  font-size: 11.5px;
+  font-weight: 680;
+  line-height: 1.42;
+}
+
+.scan-mode-banner.banner-preview {
+  border-color: rgba(109, 168, 255, 0.5);
+  background: rgba(109, 168, 255, 0.15);
+  color: #cde0ff;
+}
+
+.scan-mode-banner.banner-danger {
+  border-color: rgba(255, 111, 143, 0.48);
+  background: rgba(255, 111, 143, 0.14);
+  color: #ffb2c4;
+}
+
 .brand-row {
   display: flex;
   align-items: center;
@@ -125,6 +149,12 @@ footer,
   font-size: 40px;
   line-height: 0.95;
   font-weight: 820;
+}
+
+.score-panel h2.is-range,
+.score-panel h2.is-preview {
+  font-size: 27px;
+  line-height: 1.08;
 }
 
 .score-panel small {
