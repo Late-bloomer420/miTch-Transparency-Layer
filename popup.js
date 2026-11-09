@@ -1,8 +1,20 @@
 const $ = (id) => (typeof document !== "undefined" ? document.getElementById(id) : null);
 
 let latestReceipt = null;
+let currentLocale = "en";
+let baselineComparisonSnapshot = null;
 
 const WALLET_DEEPLINK_OPTIN_KEY = "mitch_experimental_wallet_deeplink";
+const LOCALE_STORAGE_KEY = "mitch_ui_locale";
+
+const timelineStore =
+  typeof globalThis !== "undefined" &&
+  globalThis.MitchComparisonStore &&
+  typeof globalThis.MitchComparisonStore.createTimelineStore === "function"
+    ? globalThis.MitchComparisonStore.createTimelineStore({
+        storage: typeof window !== "undefined" ? window.localStorage : null
+      })
+    : null;
 
 const permissionQueries = [
   { key: "geolocation", label: "Geolocation", name: "geolocation" },
@@ -14,10 +26,256 @@ const permissionQueries = [
 
 if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
   document.addEventListener("DOMContentLoaded", () => {
+    initLocaleAndModeControls();
     bindExportButtons();
     bindProofBridgeButtons();
+    bindComparisonControls();
     init();
   });
+}
+
+function getI18n() {
+  if (typeof globalThis !== "undefined" && globalThis.MitchI18n) {
+    return globalThis.MitchI18n;
+  }
+  if (typeof require === "function") {
+    try {
+      return require("./i18n.js");
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function getDomainBoundary() {
+  if (typeof globalThis !== "undefined" && globalThis.MitchDomainBoundary) {
+    return globalThis.MitchDomainBoundary;
+  }
+  if (typeof require === "function") {
+    try {
+      return require("./domain-boundary.js");
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function initLocaleAndModeControls() {
+  const i18n = getI18n();
+  try {
+    const saved = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    currentLocale = i18n ? i18n.normalizeLocale(saved || navigator.language || "en") : "en";
+  } catch {
+    currentLocale = "en";
+  }
+
+  const langSelect = $("langSelect");
+  if (langSelect) {
+    langSelect.value = currentLocale;
+    langSelect.addEventListener("change", () => {
+      currentLocale = i18n ? i18n.normalizeLocale(langSelect.value) : langSelect.value;
+      try {
+        window.localStorage.setItem(LOCALE_STORAGE_KEY, currentLocale);
+      } catch {
+        // Ignore storage write errors
+      }
+      applyStaticTranslations(currentLocale);
+      if (latestReceipt) renderReceipt(latestReceipt);
+    });
+  }
+
+  const modeSelect = $("collectionModeSelect");
+  if (modeSelect) {
+    if (typeof chrome !== "undefined" && chrome.runtime && typeof chrome.runtime.sendMessage === "function") {
+      try {
+        chrome.runtime.sendMessage({ type: "MITCH_GET_COLLECTION_MODE" }, (res) => {
+          if (res && res.collectionMode) {
+            modeSelect.value = res.collectionMode;
+          }
+        });
+      } catch {
+        // Ignore
+      }
+    }
+    modeSelect.addEventListener("change", () => {
+      const nextMode = modeSelect.value === "on-demand" ? "on-demand" : "continuous";
+      if (typeof chrome !== "undefined" && chrome.runtime && typeof chrome.runtime.sendMessage === "function") {
+        try {
+          chrome.runtime.sendMessage({ type: "MITCH_SET_COLLECTION_MODE", collectionMode: nextMode });
+        } catch {
+          // Ignore
+        }
+      }
+    });
+  }
+
+  applyStaticTranslations(currentLocale);
+}
+
+function applyStaticTranslations(locale = currentLocale) {
+  const i18n = getI18n();
+  if (!i18n) return;
+  if (typeof document !== "undefined" && document.documentElement) {
+    document.documentElement.lang = locale;
+  }
+
+  const mapIds = [
+    ["heroSubtitle", "heroSubtitle"],
+    ["langSwitchLabel", "langSwitchLabel"],
+    ["modeSwitchLabel", "modeSwitchLabel"],
+    ["modeContinuousOpt", "modeContinuous"],
+    ["modeOnDemandOpt", "modeOnDemand"],
+    ["surfaceScoreKicker", "surfaceScoreKicker"],
+    ["scoreSemantics", "scoreSemantics"],
+    ["dimCoverage", "dimCoverage"],
+    ["dimExposure", "dimExposure"],
+    ["dimEvidence", "dimEvidence"],
+    ["site-title", "siteTitle"],
+    ["labelOrigin", "labelOrigin"],
+    ["labelProtocol", "labelProtocol"],
+    ["labelPageTitle", "labelPageTitle"],
+    ["labelCollector", "labelCollector"],
+    ["labelWindow", "labelWindow"],
+    ["cookies-title", "cookiesTitle"],
+    ["labelTotalCookies", "labelTotalCookies"],
+    ["labelFirstPartyCookies", "labelFirstPartyCookies"],
+    ["labelThirdPartyCookies", "labelThirdPartyCookies"],
+    ["storage-title", "storageTitle"],
+    ["visibility-layer-title", "visibilityTitle"],
+    ["visibilityGuardrail", "visibilityGuardrail"],
+    ["proofBridgeHeading", "proofBridgeHeading"],
+    ["proofBridgeBody", "proofBridgeBody"],
+    ["copyProofJsonBtn", "copyProofJsonBtn"],
+    ["copyProofMarkdownBtn", "copyProofMdBtn"],
+    ["walletOptInLabel", "walletOptInLabel"],
+    ["openLocalWalletBtn", "openLocalWalletBtn"],
+    ["third-party-title", "thirdPartyTitle"],
+    ["thirdPartyGuardrail", "thirdPartyGuardrail"],
+    ["fingerprint-title", "fingerprintTitle"],
+    ["fingerprintGuardrail", "fingerprintGuardrail"],
+    ["permissions-title", "permissionsTitle"],
+    ["permissionExplainToggle", "permissionExplainToggle"],
+    ["comparison-title", "comparisonTitle"],
+    ["comparisonGuardrail", "comparisonGuardrail"],
+    ["timelineOptInLabel", "timelineOptInLabel"],
+    ["scenarioLabel", "scenarioLabel"],
+    ["scenarioConsentOpt", "scenarioConsent"],
+    ["scenarioLoginOpt", "scenarioLogin"],
+    ["scenarioPageChangeOpt", "scenarioPageChange"],
+    ["saveBeforeSnapBtn", "saveBeforeBtn"],
+    ["saveAfterSnapBtn", "saveAfterBtn"],
+    ["clearTimelineBtn", "clearTimelineBtn"],
+    ["report-title", "reportTitle"],
+    ["reportGuardrail", "reportGuardrail"],
+    ["headingObserved", "headingObserved"],
+    ["headingDeclared", "headingDeclared"],
+    ["headingPotential", "headingPotential"],
+    ["headingUnknown", "headingUnknown"],
+    ["headingUnavailable", "headingUnavailable"],
+    ["copyMarkdownBtn", "copyMarkdownBtn"],
+    ["copyJsonBtn", "copyJsonBtn"],
+    ["footerText", "footerText"]
+  ];
+
+  for (const [elId, key] of mapIds) {
+    const el = $(elId);
+    if (el) el.textContent = i18n.t(key, locale);
+  }
+
+  renderExtensionPermissionExplanations(locale);
+}
+
+function renderExtensionPermissionExplanations(locale = currentLocale) {
+  const i18n = getI18n();
+  const listEl = $("extensionPermissionExplainList");
+  if (!i18n || !listEl) return;
+  const items = i18n.getPermissionExplanations(locale);
+  listEl.replaceChildren(
+    ...items.map((item) => {
+      const li = document.createElement("li");
+      li.className = "potential";
+      li.textContent = `${item.permission}: ${item.reason} (${item.neverReads})`;
+      return li;
+    })
+  );
+}
+
+function bindComparisonControls() {
+  const optInToggle = $("enableTimelineToggle");
+  const beforeBtn = $("saveBeforeSnapBtn");
+  const afterBtn = $("saveAfterSnapBtn");
+  const clearBtn = $("clearTimelineBtn");
+  const statusEl = $("comparisonStatus");
+
+  if (optInToggle && timelineStore) {
+    optInToggle.checked = timelineStore.isOptInEnabled();
+    optInToggle.addEventListener("change", () => {
+      timelineStore.setOptInEnabled(Boolean(optInToggle.checked));
+      if (!optInToggle.checked) {
+        baselineComparisonSnapshot = null;
+        const diffList = $("comparisonDiffList");
+        if (diffList) diffList.replaceChildren();
+      }
+    });
+  }
+
+  if (beforeBtn) {
+    beforeBtn.addEventListener("click", () => {
+      if (!latestReceipt || !globalThis.MitchComparisonStore) return;
+      const scenario = ($("comparisonScenarioSelect") && $("comparisonScenarioSelect").value) || "cookie-consent";
+      baselineComparisonSnapshot = globalThis.MitchComparisonStore.sanitizeSnapshotFromReceipt(latestReceipt, {
+        scenario,
+        stage: "before"
+      });
+      if (timelineStore && timelineStore.isOptInEnabled()) {
+        timelineStore.recordSnapshot(baselineComparisonSnapshot);
+      }
+      if (statusEl) {
+        statusEl.textContent = currentLocale === "de" ? "'Vorher'-Stand gespeichert ✓" : "'Before' snapshot saved ✓";
+      }
+    });
+  }
+
+  if (afterBtn) {
+    afterBtn.addEventListener("click", () => {
+      if (!latestReceipt || !globalThis.MitchComparisonStore) return;
+      const scenario = ($("comparisonScenarioSelect") && $("comparisonScenarioSelect").value) || "cookie-consent";
+      const afterSnap = globalThis.MitchComparisonStore.sanitizeSnapshotFromReceipt(latestReceipt, {
+        scenario,
+        stage: "after"
+      });
+      if (timelineStore && timelineStore.isOptInEnabled()) {
+        timelineStore.recordSnapshot(afterSnap);
+      }
+      const base =
+        baselineComparisonSnapshot ||
+        (timelineStore && timelineStore.getSnapshots().length > 1
+          ? timelineStore.getSnapshots()[0]
+          : afterSnap);
+      const diff = globalThis.MitchComparisonStore.compareSnapshots(base, afterSnap, {
+        scenario,
+        locale: currentLocale
+      });
+      fillList("comparisonDiffList", diff.summaryLines, "observed", "Δ");
+      if (statusEl) {
+        statusEl.textContent = currentLocale === "de" ? "Vergleich aktualisiert ✓" : "Comparison updated ✓";
+      }
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      baselineComparisonSnapshot = null;
+      if (timelineStore) timelineStore.clearTimeline();
+      const diffList = $("comparisonDiffList");
+      if (diffList) diffList.replaceChildren();
+      if (statusEl) {
+        statusEl.textContent = currentLocale === "de" ? "Lokale Daten gelöscht ✓" : "Local snapshots deleted ✓";
+      }
+    });
+  }
 }
 
 function bindExportButtons() {
@@ -167,13 +425,16 @@ async function copySurfaceReport(format) {
   if (!latestReceipt) return;
   const statusEl = $("exportStatus");
   const receiptEngine = globalThis.MitchSurfaceReceipt;
+  const i18n = getI18n();
   if (!receiptEngine) return;
 
   try {
     const text =
       format === "json"
         ? receiptEngine.serializeReceiptJson(latestReceipt)
-        : receiptEngine.serializeReceiptMarkdown(latestReceipt);
+        : i18n && typeof i18n.formatLocalizedReceiptMarkdown === "function"
+          ? i18n.formatLocalizedReceiptMarkdown(latestReceipt, currentLocale)
+          : receiptEngine.serializeReceiptMarkdown(latestReceipt);
     await navigator.clipboard.writeText(text);
     if (statusEl) {
       statusEl.textContent = format === "json" ? "JSON (v1) Copied ✓" : "Markdown Copied ✓";
@@ -275,6 +536,7 @@ async function init() {
       collectorVersion,
       collectorRevision,
       mode: "extension",
+      collectionMode: (requestData && requestData.collectionMode) || (contentData && contentData.collectionMode) || "continuous",
       url,
       title: tab.title || "Untitled page",
       cookies,
@@ -437,7 +699,8 @@ async function getPermissions() {
   return results;
 }
 
-function deriveScanBannerModel(receipt) {
+function deriveScanBannerModel(receipt, locale = currentLocale) {
+  const isDe = String(locale || "").toLowerCase().startsWith("de");
   const status = receipt && receipt.collector ? receipt.collector.scanStatus : "error";
   if (status === "complete") {
     return { hidden: true, cls: "scan-mode-banner", text: "" };
@@ -446,27 +709,35 @@ function deriveScanBannerModel(receipt) {
     return {
       hidden: false,
       cls: "scan-mode-banner banner-preview",
-      text: "Standalone Preview Mode — Displaying local preview context only (not a live cross-origin browser tab scan)."
+      text: isDe
+        ? "Standalone-Vorschaumodus — Zeigt nur lokale Vorschau-Daten (kein aktiver Browser-Tab-Scan)."
+        : "Standalone Preview Mode — Displaying local preview context only (not a live cross-origin browser tab scan)."
     };
   }
   if (status === "limited") {
     return {
       hidden: false,
       cls: "scan-mode-banner",
-      text: "Limited Scan — One or more browser surface checks were unavailable. Missing checks are reported as Unavailable and never counted as zero or clean."
+      text: isDe
+        ? "Eingeschränkter Scan — Mindestens eine Browser-Prüfung war nicht verfügbar. Fehlende Prüfungen werden als 'Nicht verfügbar' ausgewiesen und nie als 0 oder sauber gewertet."
+        : "Limited Scan — One or more browser surface checks were unavailable. Missing checks are reported as Unavailable and never counted as zero or clean."
     };
   }
   if (status === "unsupported") {
     return {
       hidden: false,
       cls: "scan-mode-banner banner-danger",
-      text: "Unsupported Tab — Browser policy restricts extension inspection on non-HTTP(S) or privileged pages."
+      text: isDe
+        ? "Nicht unterstützter Tab — Browser-Richtlinien beschränken die Prüfung auf Nicht-HTTP(S)-Seiten."
+        : "Unsupported Tab — Browser policy restricts extension inspection on non-HTTP(S) or privileged pages."
     };
   }
   return {
     hidden: false,
     cls: "scan-mode-banner banner-danger",
-    text: "Scan Error — Browser surface checks could not complete reliably on this tab."
+    text: isDe
+      ? "Scan-Fehler — Browser-Oberflächenprüfungen konnten in diesem Tab nicht zuverlässig ausgeführt werden."
+      : "Scan Error — Browser surface checks could not complete reliably on this tab."
   };
 }
 
@@ -559,29 +830,29 @@ function deriveScoreViewModel(receipt) {
 
 function renderReceipt(receipt) {
   latestReceipt = receipt;
+  const i18n = getI18n();
+  const unavailText = i18n ? i18n.getEvidenceBadge("unavailable", currentLocale).badgeText : "⊘ Unavailable";
 
   if (typeof document !== "undefined" && document.body) {
     document.body.dataset.scanStatus = receipt.collector.scanStatus;
     document.body.dataset.collectorMode = receipt.collector.mode;
   }
 
-  // 0. Provenance / Mode Banner
   const bannerEl = $("scanModeBanner");
   if (bannerEl) {
-    const banner = deriveScanBannerModel(receipt);
+    const banner = deriveScanBannerModel(receipt, currentLocale);
     bannerEl.hidden = banner.hidden;
     bannerEl.className = banner.cls;
     bannerEl.textContent = banner.text;
   }
 
-  // 1. Scan State Pill & Website Provenance
   const scanPill = $("scanState");
   const statusMap = {
-    complete: { text: "Complete Scan", cls: "status-pill" },
-    limited: { text: "Limited Scan", cls: "status-pill pill-warning" },
-    preview: { text: "Standalone Preview", cls: "status-pill pill-warning" },
-    unsupported: { text: "Unsupported Tab", cls: "status-pill pill-danger" },
-    error: { text: "Scan Error", cls: "status-pill pill-danger" }
+    complete: { text: currentLocale === "de" ? "● Vollständig" : "● Complete Scan", cls: "status-pill" },
+    limited: { text: currentLocale === "de" ? "⊘ Eingeschränkt" : "⊘ Limited Scan", cls: "status-pill pill-warning" },
+    preview: { text: currentLocale === "de" ? "◌ Vorschau" : "◌ Standalone Preview", cls: "status-pill pill-warning" },
+    unsupported: { text: currentLocale === "de" ? "⊘ Nicht unterstützt" : "⊘ Unsupported Tab", cls: "status-pill pill-danger" },
+    error: { text: currentLocale === "de" ? "⊘ Fehler" : "⊘ Scan Error", cls: "status-pill pill-danger" }
   };
   const pillMeta = statusMap[receipt.collector.scanStatus] || statusMap.limited;
   if (scanPill) {
@@ -599,96 +870,97 @@ function renderReceipt(receipt) {
       receipt.collector.scanStatus === "preview"
         ? "Preview (no live tab)"
         : receipt.collector.scanStatus === "unsupported" || receipt.collector.scanStatus === "error"
-          ? "Unavailable"
-          : `${receipt.collector.observationWindowMs} ms`;
+          ? unavailText
+          : `${receipt.collector.observationWindowMs} ms (${receipt.collector.collectionMode})`;
   }
 
-  // 2. Cookies & Storage (never displaying 0 when unavailable!)
-  $("cookieTotal").textContent = receipt.cookies.available ? String(receipt.cookies.total) : "Unavailable";
-  $("firstPartyCookies").textContent = receipt.cookies.available ? String(receipt.cookies.firstParty) : "Unavailable";
-  $("thirdPartyCookies").textContent = receipt.cookies.available ? String(receipt.cookies.thirdParty) : "Unavailable";
+  $("cookieTotal").textContent = receipt.cookies.available ? String(receipt.cookies.total) : unavailText;
+  $("firstPartyCookies").textContent = receipt.cookies.available ? String(receipt.cookies.firstParty) : unavailText;
+  $("thirdPartyCookies").textContent = receipt.cookies.available ? String(receipt.cookies.thirdParty) : unavailText;
 
   $("localStorageUsage").textContent = receipt.storage.localStorage.label;
   $("sessionStorageUsage").textContent = receipt.storage.sessionStorage.label;
 
-  // 3. Visibility Layer & Proof Bridge
   renderVisibilityLayer(receipt.visibility);
-
-  // 4. Third-Party Network Activity (separated domains vs requests vs trackers)
   renderThirdPartyDomains(receipt.network);
 
-  // 5. Fingerprinting
   renderSignals(
     "fingerprintList",
     receipt.fingerprinting.map((fp) => {
+      const explain = i18n
+        ? i18n.buildSignalExplanation("fingerprinting", fp, currentLocale)
+        : null;
       if (fp.evidenceState === "unavailable") {
         return {
           name: fp.label,
           state: "Unavailable",
-          stateText: "Unavailable",
-          meta: "Check could not run because the page content script was unreachable."
+          stateText: explain ? explain.badge.badgeText : "⊘ Unavailable",
+          meta: explain ? explain.observed : "Check could not run because the page content script was unreachable.",
+          explanation: explain
         };
       }
       const isObserved = fp.observed === true;
       return {
         name: fp.label,
         state: isObserved ? "Observed" : "Not Observed",
-        stateText: isObserved ? "Observed" : "Not Observed",
-        meta:
-          fp.key === "evalAttempt"
-            ? receipt.csp.metaBlocksEval
-              ? "Meta CSP restricts dynamic eval(); violation counter active."
-              : "Passive listener for blocked eval()/script-src CSP events (not observed ≠ absent)."
-            : isObserved
-              ? "Call observed in MAIN world (payload/purpose not verified)."
-              : "No call observed during this scan (not observed ≠ absent)."
+        stateText: explain ? explain.badge.badgeText : isObserved ? "● Observed" : "○ Not Observed",
+        meta: explain ? explain.observed : "No call observed during this scan (not observed ≠ absent).",
+        explanation: explain
       };
     })
   );
 
-  // 6. Permissions
   renderSignals(
     "permissionList",
-    receipt.permissions.map((perm) => ({
-      name: perm.label,
-      state: perm.state,
-      stateText: perm.state,
-      meta:
-        perm.state === "Unavailable"
-          ? "Permission query not supported or unavailable in this browser context."
-          : "Browser Permissions API state (Granted ≠ active readout verified)."
-    }))
+    receipt.permissions.map((perm) => {
+      const explain = i18n
+        ? i18n.buildSignalExplanation("permission", perm, currentLocale)
+        : null;
+      return {
+        name: perm.label,
+        state: perm.state,
+        stateText: explain ? explain.badge.badgeText : perm.state,
+        meta: explain ? explain.observed : "Browser Permissions API state.",
+        explanation: explain
+      };
+    })
   );
 
-  // 7. Score & Dimensions
   renderScoreSection(receipt);
-
-  // 8. Five-State Evidence Report
   renderFiveStateReport(receipt.report);
 }
 
 function renderVisibilityLayer(visibility) {
   const badgeEl = $("visibilityLayerBadge");
   const bridgeCard = $("proofBridgeCard");
+  const i18n = getI18n();
   if (!badgeEl) return;
 
   if (!visibility || !visibility.available) {
-    badgeEl.textContent = "Unavailable";
+    badgeEl.textContent = i18n ? i18n.getEvidenceBadge("unavailable", currentLocale).badgeText : "⊘ Unavailable";
     badgeEl.className = "status-pill pill-warning";
     if (bridgeCard) bridgeCard.hidden = true;
     syncWalletDeepLinkButtonVisibility();
     renderSignals("visibilityLayerList", [
       {
-        name: "Form field inspection unavailable",
+        name: currentLocale === "de" ? "Formularfeld-Prüfung nicht verfügbar" : "Form field inspection unavailable",
         state: "Unavailable",
-        stateText: "Unavailable",
-        meta: "DOM input metadata could not be inspected on this tab (never treated as clean)."
+        stateText: i18n ? i18n.getEvidenceBadge("unavailable", currentLocale).badgeText : "⊘ Unavailable",
+        meta:
+          currentLocale === "de"
+            ? "DOM-Metadaten konnten in diesem Tab nicht geprüft werden (wird nie als sauber gewertet)."
+            : "DOM input metadata could not be inspected on this tab (never treated as clean)."
       }
     ]);
     return;
   }
 
-  const highest = visibility.highestLayer === "None Detected" ? "None Observed" : visibility.highestLayer;
+  const highest =
+    visibility.highestLayer === "None Detected"
+      ? i18n
+        ? i18n.getEvidenceBadge("not_observed", currentLocale).badgeText
+        : "○ None Observed"
+      : visibility.highestLayer;
   badgeEl.textContent = highest;
   badgeEl.className =
     visibility.highestLayer === "VULNERABLE (High)"
@@ -698,12 +970,12 @@ function renderVisibilityLayer(visibility) {
         : "status-pill";
 
   const suggestion = visibility.proofSuggestion;
+  const hasSuggestion = Boolean(
+    suggestion &&
+      Array.isArray(suggestion.suggestedMinimalClaims) &&
+      suggestion.suggestedMinimalClaims.length > 0
+  );
   if (bridgeCard) {
-    const hasSuggestion = Boolean(
-      suggestion &&
-        Array.isArray(suggestion.suggestedMinimalClaims) &&
-        suggestion.suggestedMinimalClaims.length > 0
-    );
     bridgeCard.hidden = !hasSuggestion;
   }
   syncWalletDeepLinkButtonVisibility();
@@ -711,10 +983,16 @@ function renderVisibilityLayer(visibility) {
   if (!visibility.findings || visibility.findings.length === 0) {
     renderSignals("visibilityLayerList", [
       {
-        name: "No matching form input metadata observed",
+        name:
+          currentLocale === "de"
+            ? "Keine passenden Formularfeld-Metadaten beobachtet"
+            : "No matching form input metadata observed",
         state: "Not Observed",
-        stateText: "Not Observed",
-        meta: "No WELT, GRUNDVERSORGUNG, or VULNERABLE input attributes observed at scan time (not observed ≠ absent)."
+        stateText: i18n ? i18n.getEvidenceBadge("not_observed", currentLocale).badgeText : "○ Not Observed",
+        meta:
+          currentLocale === "de"
+            ? "Keine WELT-, GRUNDVERSORGUNG- oder VULNERABLE-Attribute zum Scan-Zeitpunkt beobachtet (nicht beobachtet ≠ nicht vorhanden)."
+            : "No WELT, GRUNDVERSORGUNG, or VULNERABLE input attributes observed at scan time (not observed ≠ absent)."
       }
     ]);
     return;
@@ -722,27 +1000,42 @@ function renderVisibilityLayer(visibility) {
 
   renderSignals(
     "visibilityLayerList",
-    visibility.findings.map((item) => ({
-      name: item.label,
-      state: item.layer.startsWith("VULNERABLE") ? "Observed" : "Potential",
-      stateText: item.layer.split(" ")[0],
-      meta: `${item.hint} (Source: DOM field metadata; entered values not read.)`
-    }))
+    visibility.findings.map((item) => {
+      const explain = i18n
+        ? i18n.buildSignalExplanation(
+            "visibilityField",
+            {
+              label: item.label,
+              layer: item.layer,
+              hasProofSuggestion: Boolean(item.possibleMinimisation)
+            },
+            currentLocale
+          )
+        : null;
+      return {
+        name: item.label,
+        state: item.layer.startsWith("VULNERABLE") ? "Observed" : "Potential",
+        stateText: explain ? explain.badge.badgeText : item.layer.split(" ")[0],
+        meta: `${item.hint} (DOM metadata only; entered values not read.)`,
+        explanation: explain
+      };
+    })
   );
 }
 
 function renderThirdPartyDomains(network) {
   const countEl = $("thirdPartyDomainCount");
+  const i18n = getI18n();
   if (!countEl) return;
 
   if (!network || !network.available) {
-    countEl.textContent = "Unavailable";
+    countEl.textContent = i18n ? i18n.getEvidenceBadge("unavailable", currentLocale).badgeText : "⊘ Unavailable";
     countEl.className = "status-pill pill-warning";
     renderSignals("thirdPartyDomainList", [
       {
-        name: "Third-party network log unavailable",
+        name: currentLocale === "de" ? "Netzwerkprotokoll nicht verfügbar" : "Third-party network log unavailable",
         state: "Unavailable",
-        stateText: "Unavailable",
+        stateText: i18n ? i18n.getEvidenceBadge("unavailable", currentLocale).badgeText : "⊘ Unavailable",
         meta: "Network request counts could not be retrieved for this tab."
       }
     ]);
@@ -756,10 +1049,16 @@ function renderThirdPartyDomains(network) {
   if (network.domains.length === 0) {
     renderSignals("thirdPartyDomainList", [
       {
-        name: "No third-party requests observed during this window",
+        name:
+          currentLocale === "de"
+            ? "Keine Drittanbieter-Anfragen in diesem Zeitfenster beobachtet"
+            : "No third-party requests observed during this window",
         state: "Not Observed",
-        stateText: "Not Observed",
-        meta: "No external domain requests were recorded during this scan window (not observed ≠ absent)."
+        stateText: i18n ? i18n.getEvidenceBadge("not_observed", currentLocale).badgeText : "○ Not Observed",
+        meta:
+          currentLocale === "de"
+            ? "Während dieses Scans wurden keine externen Domains kontaktiert (nicht beobachtet ≠ nicht vorhanden)."
+            : "No external domain requests were recorded during this scan window (not observed ≠ absent)."
       }
     ]);
     return;
@@ -767,20 +1066,36 @@ function renderThirdPartyDomains(network) {
 
   renderSignals(
     "thirdPartyDomainList",
-    network.domains.slice(0, 15).map((item) => ({
-      name: `${item.domain} (${item.requestCount} req)`,
-      state: item.isTracker ? "Observed" : "Potential",
-      stateText: item.isTracker ? "Rule Match" : "External",
-      meta: `${item.classification} (${item.classificationSource}). Payload, retention, and sale not verified.`
-    }))
+    network.domains.slice(0, 15).map((item) => {
+      const explain = i18n
+        ? i18n.buildSignalExplanation(
+            item.isTracker ? "trackerDomain" : "thirdPartyDomain",
+            item,
+            currentLocale
+          )
+        : null;
+      return {
+        name: `${item.domain} (${item.requestCount} req)`,
+        state: item.isTracker ? "Observed" : "Potential",
+        stateText: explain ? explain.badge.badgeText : item.isTracker ? "● Observed" : "◌ Potential",
+        meta: explain
+          ? `${explain.observed} ${explain.notVerified}`
+          : `${item.classification} (${item.classificationSource}). Payload, retention, and sale not verified.`,
+        explanation: explain
+      };
+    })
   );
 }
 
 function renderSignals(containerId, signals) {
   const container = $(containerId);
+  const i18n = getI18n();
   if (!container) return;
   container.replaceChildren(
     ...signals.map((signal) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "signal-item-wrap";
+
       const row = document.createElement("div");
       row.className = "signal-item";
 
@@ -798,7 +1113,41 @@ function renderSignals(containerId, signals) {
       state.className = `signal-state state-${cssKey}`;
       state.textContent = signal.stateText || signal.state;
       row.append(text, state);
-      return row;
+
+      if (signal.explanation && i18n) {
+        const details = document.createElement("details");
+        details.className = "signal-details";
+        const summary = document.createElement("summary");
+        summary.textContent =
+          currentLocale === "de"
+            ? "Details: Beobachtet · Potenziell · Nicht verifiziert · Unbekannt · Handlung"
+            : "Details: Observed · Potential · Not verified · Unknown · What you can do";
+        const dl = document.createElement("dl");
+        dl.className = "signal-explain-dl";
+        const parts = [
+          [i18n.t("detailWhatObserved", currentLocale), signal.explanation.observed],
+          [i18n.t("detailDeclared", currentLocale), signal.explanation.declared],
+          [i18n.t("detailPotential", currentLocale), signal.explanation.potential],
+          [i18n.t("detailNotVerified", currentLocale), signal.explanation.notVerified],
+          [i18n.t("detailUnknown", currentLocale), signal.explanation.unknown],
+          [i18n.t("detailWhyItMatters", currentLocale), signal.explanation.whyItMatters],
+          [i18n.t("detailUserAction", currentLocale), signal.explanation.userAction]
+        ];
+        for (const [dtLabel, ddVal] of parts) {
+          const d = document.createElement("div");
+          const dt = document.createElement("dt");
+          const dd = document.createElement("dd");
+          dt.textContent = dtLabel;
+          dd.textContent = ddVal;
+          d.append(dt, dd);
+          dl.append(d);
+        }
+        details.append(summary, dl);
+        text.append(details);
+      }
+
+      wrapper.append(row);
+      return wrapper;
     })
   );
 }
@@ -832,10 +1181,11 @@ function renderScoreSection(receipt) {
 }
 
 function renderFiveStateReport(report) {
+  const i18n = getI18n();
   const obsItems =
     report.observed.length > 0
       ? report.observed.map((i) => i.summary)
-      : ["Not observed during this scan (not observed ≠ absent)."];
+      : [i18n ? i18n.t("notObservedNote", currentLocale) : "Not observed during this scan (not observed ≠ absent)."];
   fillList("observedFacts", obsItems, "observed", "●");
 
   const declItems =
@@ -843,7 +1193,7 @@ function renderFiveStateReport(report) {
       ? report.declared.map(
           (i) => `${i.summary} [source: ${i.sourceReference}, verified: ${i.independentlyVerified ? "yes" : "no"}]`
         )
-      : ["No cited provider declarations recorded in this scan."];
+      : [i18n ? i18n.t("noDeclarationsNote", currentLocale) : "No cited provider declarations recorded in this scan."];
   fillList("declaredStatements", declItems, "declared", "◈");
 
   const potItems =
@@ -883,6 +1233,10 @@ function normalizePermissionState(state) {
 }
 
 function sameRegistrableHost(cookieDomain, pageHost) {
+  const boundary = getDomainBoundary();
+  if (boundary && typeof boundary.sameCookieDomain === "function") {
+    return boundary.sameCookieDomain(cookieDomain, pageHost);
+  }
   const cleanCookieDomain = cookieDomain.replace(/^\./, "").toLowerCase();
   const cleanPageHost = pageHost.toLowerCase();
   return cleanPageHost === cleanCookieDomain || cleanPageHost.endsWith(`.${cleanCookieDomain}`);

@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://late-bloomer420.github.io/miTch-Transparency-Layer/schemas/surface-receipt.v1.schema.json",
+  "title": "AskMI Transparency Surface Receipt v1",
+  "description": "Normalized local snapshot of observed browser surfaces, provider declarations, potential access, unknown server behavior, and unavailable checks.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "receiptId",
+    "capturedAt",
+    "collector",
+    "page",
+    "surfaceScore",
+    "cookies",
+    "storage",
+    "network",
+    "report",
+    "visibility",
+    "permissions",
+    "fingerprinting",
+    "csp",
+    "integrity"
+  ],
+  "properties": {
+    "schema": {
+      "const": "askmi.transparency.surface-receipt.v1"
+    },
+    "receiptId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 100
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "revision",
+        "ruleSetVersion",
+        "scoringRuleVersion",
+        "mode",
+        "collectionMode",
+        "scanStatus",
+        "observationWindowMs",
+        "limitations"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "ruleSetVersion": {
+          "type": "string"
+        },
+        "scoringRuleVersion": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "extension",
+            "preview",
+            "cli"
+          ]
+        },
+        "collectionMode": {
+          "enum": [
+            "continuous",
+            "on-demand"
+          ]
+        },
+        "scanStatus": {
+          "enum": [
+            "complete",
+            "limited",
+            "unsupported",
+            "preview",
+            "error"
+          ]
+        },
+        "observationWindowMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "domain",
+        "protocol",
+        "title",
+        "urlIncluded"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "urlIncluded": {
+          "const": false
+        }
+      }
+    },
+    "surfaceScore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "observedMinimum",
+        "unverifiedMaximum",
+        "category",
+        "semantics",
+        "scoringRuleVersion",
+        "ruleSetVersion",
+        "nonVerdictNotice",
+        "dimensions",
+        "components"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "observedMinimum": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "unverifiedMaximum": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "category": {
+          "type": "string"
+        },
+        "semantics": {
+          "const": "informational-surface-summary"
+        },
+        "scoringRuleVersion": {
+          "type": "string"
+        },
+        "ruleSetVersion": {
+          "type": "string"
+        },
+        "nonVerdictNotice": {
+          "type": "string"
+        },
+        "dimensions": {
+          "type": "object"
+        },
+        "components": {
+          "type": "object"
+        }
+      }
+    },
+    "cookies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "total",
+        "firstParty",
+        "thirdParty",
+        "valuesInspected"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "total": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "firstParty": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "thirdParty": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "valuesInspected": {
+          "const": false
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "valuesInspected",
+        "localStorage",
+        "sessionStorage"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "valuesInspected": {
+          "const": false
+        },
+        "localStorage": {
+          "type": "object"
+        },
+        "sessionStorage": {
+          "type": "object"
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "thirdPartyRequestCount",
+        "uniqueThirdPartyDomainCount",
+        "knownTrackerDomainCount",
+        "unattributedRequestCount",
+        "domains"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "thirdPartyRequestCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "uniqueThirdPartyDomainCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "knownTrackerDomainCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "unattributedRequestCount": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "domains": {
+          "type": "array"
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "notObservedNote",
+        "observed",
+        "declared",
+        "potential",
+        "unknown",
+        "unavailable"
+      ],
+      "properties": {
+        "notObservedNote": {
+          "type": "string"
+        },
+        "observed": {
+          "type": "array"
+        },
+        "declared": {
+          "type": "array"
+        },
+        "potential": {
+          "type": "array"
+        },
+        "unknown": {
+          "type": "array"
+        },
+        "unavailable": {
+          "type": "array"
+        }
+      }
+    },
+    "visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "highestLayer",
+        "fieldMetadataOnly",
+        "counts",
+        "findings",
+        "proofSuggestion"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "highestLayer": {
+          "type": "string"
+        },
+        "fieldMetadataOnly": {
+          "const": true
+        },
+        "counts": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "findings": {
+          "type": "array"
+        },
+        "proofSuggestion": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "permissions": {
+      "type": "array"
+    },
+    "fingerprinting": {
+      "type": "array"
+    },
+    "csp": {
+      "type": "object"
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "normalizationVersion",
+        "contentHashAlgorithm",
+        "contentHash",
+        "signature"
+      ],
+      "properties": {
+        "normalizationVersion": {
+          "const": "1"
+        },
+        "contentHashAlgorithm": {
+          "const": "sha-256"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "signature": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,18 @@
+if (typeof importScripts === "function") {
+  try {
+    importScripts("domain-boundary.js");
+  } catch {
+    // Fallback below if running in test environment
+  }
+}
+
+const domainBoundary =
+  (typeof globalThis !== "undefined" && globalThis.MitchDomainBoundary) ||
+  (typeof require === "function" ? require("./domain-boundary.js") : null);
+
 const tabRequests = new Map();
 const MAX_DOMAINS_PER_TAB = 80;
+let collectionMode = "continuous"; // "continuous" | "on-demand"
 
 if (typeof chrome !== "undefined" && chrome.webRequest && chrome.tabs && chrome.runtime) {
   chrome.webRequest.onCompleted.addListener(
@@ -24,11 +37,31 @@ if (typeof chrome !== "undefined" && chrome.webRequest && chrome.tabs && chrome.
   });
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message && message.type === "MITCH_GET_TAB_REQUESTS") {
+    if (!message || typeof message !== "object") return false;
+
+    if (message.type === "MITCH_GET_COLLECTION_MODE") {
+      sendResponse({ collectionMode });
+      return true;
+    }
+
+    if (message.type === "MITCH_SET_COLLECTION_MODE") {
+      collectionMode = message.collectionMode === "on-demand" ? "on-demand" : "continuous";
+      if (collectionMode === "on-demand") {
+        for (const tabId of tabRequests.keys()) {
+          clearTabBadge(tabId);
+        }
+        tabRequests.clear();
+      }
+      sendResponse({ ok: true, collectionMode });
+      return true;
+    }
+
+    if (message.type === "MITCH_GET_TAB_REQUESTS") {
       const entry = tabRequests.get(message.tabId);
       if (!entry) {
         sendResponse({
           available: true,
+          collectionMode,
           hasContentPush: false,
           thirdPartyRequestCount: 0,
           thirdPartyDomains: [],
@@ -40,6 +73,7 @@ if (typeof chrome !== "undefined" && chrome.webRequest && chrome.tabs && chrome.
       }
       sendResponse({
         available: true,
+        collectionMode,
         hasContentPush: Boolean(entry.hasContentPush),
         thirdPartyRequestCount: entry.thirdPartyCount,
         thirdPartyDomains: Array.from(entry.domainCounts.keys()).sort(),
@@ -50,7 +84,11 @@ if (typeof chrome !== "undefined" && chrome.webRequest && chrome.tabs && chrome.
       return true;
     }
 
-    if (message && message.type === "MITCH_PAGE_SURFACES" && sender.tab && sender.tab.id >= 0) {
+    if (message.type === "MITCH_PAGE_SURFACES" && sender.tab && sender.tab.id >= 0) {
+      if (collectionMode === "on-demand") {
+        sendResponse({ ok: true, skipped: true });
+        return true;
+      }
       const tabId = sender.tab.id;
       const entry = getEntry(tabId);
       entry.hasContentPush = true;
@@ -83,9 +121,34 @@ if (typeof chrome !== "undefined" && chrome.webRequest && chrome.tabs && chrome.
 }
 
 function recordRequest(details) {
-  if (details.tabId < 0) return;
+  if (collectionMode === "on-demand") return;
+  if (!details || details.tabId < 0) return;
 
-  if (!details.initiator) {
+  if (domainBoundary && typeof domainBoundary.classifyRequestRelation === "function") {
+    const rel = domainBoundary.classifyRequestRelation({
+      requestUrl: details.url,
+      initiator: details.initiator,
+      documentUrl: details.documentUrl
+    });
+    if (rel.relation === "invalid" || rel.relation === "first-party") {
+      return;
+    }
+    const entry = getEntry(details.tabId);
+    if (rel.relation === "unattributed") {
+      entry.unattributedCount += 1;
+      return;
+    }
+    if (rel.relation === "third-party" && rel.requestHost) {
+      entry.thirdPartyCount += 1;
+      if (entry.domainCounts.has(rel.requestHost) || entry.domainCounts.size < MAX_DOMAINS_PER_TAB) {
+        entry.domainCounts.set(rel.requestHost, (entry.domainCounts.get(rel.requestHost) || 0) + 1);
+      }
+      updateTabBadge(details.tabId);
+    }
+    return;
+  }
+
+  if (!details.initiator || details.initiator === "null") {
     const entry = getEntry(details.tabId);
     entry.unattributedCount += 1;
     return;
@@ -200,13 +263,19 @@ function updateTabBadge(tabId) {
 }
 
 function sameSite(a, b) {
+  if (domainBoundary && typeof domainBoundary.sameSite === "function") {
+    return domainBoundary.sameSite(a, b);
+  }
   const hostA = registrableApproximation(a);
   const hostB = registrableApproximation(b);
   return hostA === hostB;
 }
 
 function registrableApproximation(hostname) {
-  const parts = hostname.toLowerCase().split(".").filter(Boolean);
+  if (domainBoundary && typeof domainBoundary.getRegistrableDomain === "function") {
+    return domainBoundary.getRegistrableDomain(hostname) || "";
+  }
+  const parts = String(hostname || "").toLowerCase().split(".").filter(Boolean);
   if (parts.length <= 2) return parts.join(".");
   return parts.slice(-2).join(".");
 }
@@ -215,6 +284,11 @@ if (typeof module === "object" && module.exports) {
   module.exports = {
     computeBadgeState,
     sameSite,
-    registrableApproximation
+    registrableApproximation,
+    recordRequest,
+    getTabEntry: (tabId) => tabRequests.get(tabId),
+    setCollectionModeForTest: (mode) => {
+      collectionMode = mode === "on-demand" ? "on-demand" : "continuous";
+    }
   };
 }

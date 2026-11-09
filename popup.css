@@ -561,3 +561,88 @@ footer {
     transition: none;
   }
 }
+
+.toolbar-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.toolbar-control {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.toolbar-control select {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11.5px;
+}
+
+.toolbar-control select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.signal-details,
+.explain-details {
+  margin-top: 6px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+}
+
+.signal-details summary,
+.explain-details summary {
+  cursor: pointer;
+  color: var(--accent-2);
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.signal-explain-dl {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+}
+
+.signal-explain-dl div {
+  display: grid;
+  gap: 1px;
+}
+
+.signal-explain-dl dt {
+  color: var(--soft);
+  font-size: 10.5px;
+  font-weight: 740;
+}
+
+.signal-explain-dl dd {
+  text-align: left;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 450;
+}
+
+.permission-explain-list,
+.comparison-diff-list {
+  margin-top: 8px;
+}
+
+.comparison-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.comparison-actions {
+  margin-top: 4px;
+  padding-top: 6px;
+}

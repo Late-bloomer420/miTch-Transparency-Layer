@@ -1,0 +1,50 @@
+name: Privacy Surface Audit (Sanitized Receipt & Diff)
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_fixture:
+        description: "Baseline fixture name (allowed, limited, high-surface)"
+        required: false
+        default: "allowed"
+      candidate_fixture:
+        description: "Candidate fixture name (allowed, limited, high-surface)"
+        required: false
+        default: "high-surface"
+
+permissions:
+  contents: read
+
+jobs:
+  surface-audit:
+    name: Validate Receipts & Generate Sanitized Surface Diff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate deterministic Surface Receipt v1 fixtures
+        run: |
+          node cli/mitch-scan.mjs validate fixtures/receipts/allowed.json
+          node cli/mitch-scan.mjs validate fixtures/receipts/limited.json
+          node cli/mitch-scan.mjs validate fixtures/receipts/high-surface.json
+          node cli/mitch-scan.mjs validate fixtures/receipts/unavailable.json
+
+      - name: Generate sanitized diff artifacts (JSON & Markdown)
+        run: |
+          mkdir -p audit-artifacts
+          node cli/mitch-scan.mjs scan --fixture "${{ inputs.candidate_fixture || 'high-surface' }}" --out audit-artifacts/candidate-receipt.json
+          node cli/mitch-scan.mjs diff "fixtures/receipts/${{ inputs.baseline_fixture || 'allowed' }}.json" audit-artifacts/candidate-receipt.json --out audit-artifacts/surface-diff.json
+          node cli/mitch-scan.mjs diff "fixtures/receipts/${{ inputs.baseline_fixture || 'allowed' }}.json" audit-artifacts/candidate-receipt.json --format markdown --out audit-artifacts/surface-diff.md
+
+      - name: Upload sanitized audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mitch-sanitized-surface-audit
+          path: audit-artifacts/
+          retention-days: 14

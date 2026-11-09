@@ -1,0 +1,251 @@
+{
+  "schema": "askmi.transparency.surface-receipt.v1",
+  "receiptId": "tsr_fixture_unavailable_v1",
+  "capturedAt": "2026-11-01T12:15:00.000Z",
+  "collector": {
+    "name": "miTch Transparency Layer",
+    "version": "0.3.0",
+    "revision": "fixture-v1",
+    "ruleSetVersion": "visibility-rules-v1",
+    "scoringRuleVersion": "surface-score-v1",
+    "mode": "extension",
+    "collectionMode": "continuous",
+    "scanStatus": "unsupported",
+    "observationWindowMs": 0,
+    "limitations": [
+      "Target tab is not an inspectable HTTP/HTTPS document."
+    ]
+  },
+  "page": {
+    "origin": "unavailable",
+    "domain": "extensions",
+    "protocol": "CHROME",
+    "title": "Extensions",
+    "urlIncluded": false
+  },
+  "surfaceScore": {
+    "value": null,
+    "observedMinimum": null,
+    "unverifiedMaximum": null,
+    "category": "Unavailable",
+    "semantics": "informational-surface-summary",
+    "scoringRuleVersion": "surface-score-v1",
+    "ruleSetVersion": "visibility-rules-v1",
+    "nonVerdictNotice": "Surface Score summarizes observed browser-visible surfaces only. Low score does not mean safe; unavailable inputs are never counted as zero.",
+    "dimensions": {
+      "observationCoverage": {
+        "checkedSources": 0,
+        "totalSources": 6,
+        "percent": 0,
+        "status": "unsupported",
+        "unavailableSources": [
+          "cookies",
+          "network",
+          "storage",
+          "fingerprinting",
+          "visibility",
+          "permissions"
+        ]
+      },
+      "technicalExposure": {
+        "value": null,
+        "observedMinimum": null,
+        "unverifiedMaximum": null,
+        "maxValue": 100,
+        "category": "Unavailable"
+      },
+      "evidenceQuality": {
+        "directObservedCount": 0,
+        "declaredCount": 0,
+        "potentialCount": 0,
+        "unavailableCount": 1,
+        "summary": "no-reliable-observation"
+      }
+    },
+    "components": {
+      "cookies": null,
+      "thirdPartyRequests": null,
+      "knownTrackerDomains": null,
+      "fingerprintingCalls": null,
+      "grantedPermissions": null,
+      "promptPermissions": null
+    }
+  },
+  "cookies": {
+    "available": false,
+    "total": null,
+    "firstParty": null,
+    "thirdParty": null,
+    "valuesInspected": false
+  },
+  "storage": {
+    "available": false,
+    "valuesInspected": false,
+    "localStorage": {
+      "available": false,
+      "keyCount": null,
+      "label": "Unavailable"
+    },
+    "sessionStorage": {
+      "available": false,
+      "keyCount": null,
+      "label": "Unavailable"
+    }
+  },
+  "network": {
+    "available": false,
+    "thirdPartyRequestCount": null,
+    "uniqueThirdPartyDomainCount": null,
+    "knownTrackerDomainCount": null,
+    "unattributedRequestCount": 0,
+    "domains": []
+  },
+  "report": {
+    "notObservedNote": "Not observed during this scan does not mean absent on the site or its servers.",
+    "observed": [],
+    "declared": [],
+    "potential": [],
+    "unknown": [
+      {
+        "id": "server.storage",
+        "evidenceState": "unknown",
+        "summary": "What data is stored on first-party or third-party servers cannot be determined by this browser extension",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.retention",
+        "evidenceState": "unknown",
+        "summary": "Server-side retention periods and deletion practices cannot be determined from browser observation",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.profiling",
+        "evidenceState": "unknown",
+        "summary": "Internal profiling, identity linking, or automated decision-making on remote servers cannot be determined",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.onward-sharing",
+        "evidenceState": "unknown",
+        "summary": "Server-to-server onward data sharing cannot be determined from browser observation alone",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.data-sale",
+        "evidenceState": "unknown",
+        "summary": "Commercial resale or monetization of data cannot be inferred from cookies, tracker domains, request counts, or Surface Score",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      }
+    ],
+    "unavailable": [
+      {
+        "id": "collector.tab-context",
+        "evidenceState": "unavailable",
+        "summary": "Browser restricts extension inspection on non-HTTP(S) or privileged pages",
+        "source": "extension-runtime",
+        "reason": "unsupported-page-protocol"
+      }
+    ]
+  },
+  "visibility": {
+    "available": false,
+    "highestLayer": "Unavailable",
+    "fieldMetadataOnly": true,
+    "counts": null,
+    "findings": [],
+    "proofSuggestion": null
+  },
+  "permissions": [
+    {
+      "key": "geolocation",
+      "label": "Geolocation",
+      "state": "Unavailable",
+      "evidenceState": "unavailable"
+    },
+    {
+      "key": "notifications",
+      "label": "Notifications",
+      "state": "Unavailable",
+      "evidenceState": "unavailable"
+    },
+    {
+      "key": "camera",
+      "label": "Camera",
+      "state": "Unavailable",
+      "evidenceState": "unavailable"
+    },
+    {
+      "key": "microphone",
+      "label": "Microphone",
+      "state": "Unavailable",
+      "evidenceState": "unavailable"
+    },
+    {
+      "key": "clipboard",
+      "label": "Clipboard",
+      "state": "Unavailable",
+      "evidenceState": "unavailable"
+    }
+  ],
+  "fingerprinting": [
+    {
+      "id": "fingerprinting.canvas",
+      "key": "canvas",
+      "label": "Canvas Readout (toDataURL / toBlob / getImageData)",
+      "evidenceState": "unavailable",
+      "observed": null,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.webgl",
+      "key": "webgl",
+      "label": "WebGL Unmasked Renderer / Pixel Readout",
+      "evidenceState": "unavailable",
+      "observed": null,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.audio",
+      "key": "audio",
+      "label": "AudioContext / OfflineAudioContext Oscillator",
+      "evidenceState": "unavailable",
+      "observed": null,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.webrtc",
+      "key": "webrtc",
+      "label": "WebRTC RTCPeerConnection",
+      "evidenceState": "unavailable",
+      "observed": null,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.evalAttempt",
+      "key": "evalAttempt",
+      "label": "Blocked Dynamic eval() CSP Violation",
+      "evidenceState": "unavailable",
+      "observed": null,
+      "source": "securitypolicyviolation-listener"
+    }
+  ],
+  "csp": {
+    "available": false,
+    "hasMetaCsp": null,
+    "metaBlocksEval": null,
+    "evalBlockedCount": null,
+    "totalViolationCount": null,
+    "violatedDirectives": []
+  },
+  "integrity": {
+    "normalizationVersion": "1",
+    "contentHashAlgorithm": "sha-256",
+    "contentHash": "de288fc0dbcffd5d3e8879ba84a417316c805a873a466b7379d468f5891caf0d",
+    "signature": null
+  }
+}

@@ -1,6 +1,6 @@
 # Product roadmap v0.4 — trustworthy Visibility & Evidence Companion
 
-**Status:** Active planning baseline  
+**Status:** Gates G0–G4 Implemented & Verified (see [Issue #20](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20))  
 **Baseline date:** 2026-10-27  
 **Live programme:** [Issue #20](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20)  
 **Current implementation:** v0.3.0, experimental/local-only

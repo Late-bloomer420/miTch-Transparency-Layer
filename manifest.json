@@ -25,10 +25,11 @@
         "https://*/*"
       ],
       "js": [
-        "page-observer.js"
+        "domain-boundary.js",
+        "proof-bridge.js",
+        "content.js"
       ],
-      "run_at": "document_start",
-      "world": "MAIN"
+      "run_at": "document_start"
     },
     {
       "matches": [
@@ -36,10 +37,10 @@
         "https://*/*"
       ],
       "js": [
-        "proof-bridge.js",
-        "content.js"
+        "page-observer.js"
       ],
-      "run_at": "document_start"
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "icons": {
