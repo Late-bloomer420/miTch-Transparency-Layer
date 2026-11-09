@@ -2,16 +2,16 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main", "feat/**"]
   pull_request:
+    branches: ["main"]
 
 permissions:
   contents: read
 
 jobs:
   verify:
-    name: Syntax, Unit Tests & Release Integrity
+    name: Syntax, Unit Tests, Schema Validation & Release Integrity
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,21 +20,34 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "20"
 
-      - name: Check JS syntax
+      - name: Check JavaScript syntax
         run: |
           node --check background.js
           node --check content.js
           node --check page-observer.js
-          node --check popup.js
+          node --check domain-boundary.js
           node --check proof-bridge.js
           node --check surface-receipt.js
+          node --check i18n.js
+          node --check comparison-store.js
+          node --check receipt-validator.js
+          node --check receipt-diff.js
+          node --check popup.js
           node --check build-meta.js
+          node --check cli/mitch-scan.mjs
           node --check scripts/build-release.mjs
 
-      - name: Run deterministic test suite
+      - name: Run deterministic unit tests
         run: node --test test/*.test.mjs
 
-      - name: Verify revision-bound release package & policy parity
+      - name: Validate canonical Surface Receipt v1 fixtures via CLI
+        run: |
+          node cli/mitch-scan.mjs validate fixtures/receipts/allowed.json
+          node cli/mitch-scan.mjs validate fixtures/receipts/limited.json
+          node cli/mitch-scan.mjs validate fixtures/receipts/high-surface.json
+          node cli/mitch-scan.mjs validate fixtures/receipts/unavailable.json
+
+      - name: Verify release package integrity
         run: node scripts/build-release.mjs --verify

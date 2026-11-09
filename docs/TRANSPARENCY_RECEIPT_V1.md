@@ -1,6 +1,6 @@
 # Transparency Surface Receipt v1
 
-**Status:** Draft contract for implementation and review  
+**Status:** Adopted v1 Contract (Implemented in `surface-receipt.js`, validated by `schemas/surface-receipt.v1.schema.json` and `receipt-validator.js`)  
 **Schema identifier:** `askmi.transparency.surface-receipt.v1`  
 **Tracker:** [Issue #15](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/15) and [Issue #18](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/18)
 
@@ -155,7 +155,7 @@ An unavailable item must not be converted to `false`, `notDetected` or a clean r
 }
 ```
 
-The example is a contract proposal, not evidence that these fields are already implemented.
+Canonical deterministic fixtures matching this contract are stored in `fixtures/receipts/allowed.json`, `fixtures/receipts/limited.json`, `fixtures/receipts/high-surface.json`, and `fixtures/receipts/unavailable.json`.
 
 ## Required fields
 

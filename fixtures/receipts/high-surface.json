@@ -1,0 +1,515 @@
+{
+  "schema": "askmi.transparency.surface-receipt.v1",
+  "receiptId": "tsr_fixture_high_surface_v1",
+  "capturedAt": "2026-11-01T12:10:00.000Z",
+  "collector": {
+    "name": "miTch Transparency Layer",
+    "version": "0.3.0",
+    "revision": "fixture-v1",
+    "ruleSetVersion": "visibility-rules-v1",
+    "scoringRuleVersion": "surface-score-v1",
+    "mode": "extension",
+    "collectionMode": "continuous",
+    "scanStatus": "complete",
+    "observationWindowMs": 5400,
+    "limitations": [
+      "MAIN-world API observations reflect calls seen since document_start unless the host page interfered via realm/prototype techniques."
+    ]
+  },
+  "page": {
+    "origin": "https://checkout.example.co.uk",
+    "domain": "checkout.example.co.uk",
+    "protocol": "HTTPS",
+    "title": "Age & Payment Verification",
+    "urlIncluded": false
+  },
+  "surfaceScore": {
+    "value": 79,
+    "observedMinimum": 79,
+    "unverifiedMaximum": 79,
+    "category": "Very High Surface",
+    "semantics": "informational-surface-summary",
+    "scoringRuleVersion": "surface-score-v1",
+    "ruleSetVersion": "visibility-rules-v1",
+    "nonVerdictNotice": "Surface Score summarizes observed browser-visible surfaces only. Low score does not mean safe; unavailable inputs are never counted as zero.",
+    "dimensions": {
+      "observationCoverage": {
+        "checkedSources": 6,
+        "totalSources": 6,
+        "percent": 100,
+        "status": "complete",
+        "unavailableSources": []
+      },
+      "technicalExposure": {
+        "value": 79,
+        "observedMinimum": 79,
+        "unverifiedMaximum": 79,
+        "maxValue": 100,
+        "category": "Very High Surface"
+      },
+      "evidenceQuality": {
+        "directObservedCount": 11,
+        "declaredCount": 1,
+        "potentialCount": 5,
+        "unavailableCount": 0,
+        "summary": "complete-browser-window-observation"
+      }
+    },
+    "components": {
+      "cookies": 12,
+      "thirdPartyRequests": 17,
+      "knownTrackerDomains": 8,
+      "fingerprintingCalls": 30,
+      "grantedPermissions": 8,
+      "promptPermissions": 4
+    }
+  },
+  "cookies": {
+    "available": true,
+    "total": 6,
+    "firstParty": 3,
+    "thirdParty": 3,
+    "valuesInspected": false
+  },
+  "storage": {
+    "available": true,
+    "valuesInspected": false,
+    "localStorage": {
+      "available": true,
+      "keyCount": 4,
+      "label": "4 key(s)"
+    },
+    "sessionStorage": {
+      "available": true,
+      "keyCount": 2,
+      "label": "2 key(s)"
+    }
+  },
+  "network": {
+    "available": true,
+    "thirdPartyRequestCount": 7,
+    "uniqueThirdPartyDomainCount": 3,
+    "knownTrackerDomainCount": 2,
+    "unattributedRequestCount": 0,
+    "domains": [
+      {
+        "domain": "cdn.checkout-assets.example.net",
+        "classification": "External Resource / CDN",
+        "classificationSource": "local-rule",
+        "isTracker": false,
+        "requestCount": 1
+      },
+      {
+        "domain": "doubleclick.net",
+        "classification": "Ad-Tech Tracker",
+        "classificationSource": "local-rule",
+        "isTracker": true,
+        "requestCount": 4
+      },
+      {
+        "domain": "www.google-analytics.com",
+        "classification": "Analytics Tracker",
+        "classificationSource": "local-rule",
+        "isTracker": true,
+        "requestCount": 2
+      }
+    ]
+  },
+  "report": {
+    "notObservedNote": "Not observed during this scan does not mean absent on the site or its servers.",
+    "observed": [
+      {
+        "id": "cookies.present",
+        "evidenceState": "observed",
+        "summary": "Observed 6 cookie(s) (3 first-party, 3 third-party domain scope)",
+        "source": "cookies-api",
+        "confidence": "high",
+        "bounded": {
+          "observed": "6 browser cookie entry/entries present for this URL scope (names/counts only; cookie values are never exported).",
+          "declaredOrPossible": "Cookies can maintain session state, preferences, or cross-request identifiers.",
+          "notVerified": "Cookie contents, purpose, and whether identifiers are linked across sites were not verified.",
+          "unknown": "Server-side session binding, retention duration, onward sharing, and sale cannot be determined from cookie presence."
+        }
+      },
+      {
+        "id": "network.third-party-traffic",
+        "evidenceState": "observed",
+        "summary": "Observed 7 third-party request(s) across 3 unique domain(s) (2 matching local tracker/telemetry domain rules)",
+        "source": "webRequest-and-resource-timing",
+        "confidence": "high",
+        "bounded": {
+          "observed": "7 request(s) to 3 external domain(s) occurred during this scan.",
+          "declaredOrPossible": "2 contacted domain(s) match local analytics/advertising/telemetry rules; contacted hosts receive standard HTTP request metadata.",
+          "notVerified": "Request payloads, whether any form/user data was transmitted, and recipient use were not verified.",
+          "unknown": "Retention, onward sharing, contractual relationships, and data sale cannot be determined from network requests or tracker labels alone."
+        }
+      },
+      {
+        "id": "storage.local.keys",
+        "evidenceState": "observed",
+        "summary": "Observed 4 key(s) in client-side localStorage",
+        "source": "web-storage-api",
+        "confidence": "high",
+        "bounded": {
+          "observed": "window.localStorage contains 4 key(s) on this origin (key values are never read or exported).",
+          "declaredOrPossible": "Client-side localStorage persists across browser restarts until cleared.",
+          "notVerified": "Stored values and whether any entry holds a tracking or session identifier were not verified.",
+          "unknown": "Whether stored values are later synchronized to remote servers is unknown."
+        }
+      },
+      {
+        "id": "storage.session.keys",
+        "evidenceState": "observed",
+        "summary": "Observed 2 key(s) in client-side sessionStorage",
+        "source": "web-storage-api",
+        "confidence": "high",
+        "bounded": {
+          "observed": "window.sessionStorage contains 2 key(s) for this tab session (values never read).",
+          "declaredOrPossible": "Client-side sessionStorage persists for the lifetime of the current tab.",
+          "notVerified": "Stored values and their purpose were not verified.",
+          "unknown": "Whether session values are mirrored to remote servers is unknown."
+        }
+      },
+      {
+        "id": "csp.meta.blocks-eval",
+        "evidenceState": "observed",
+        "summary": "Observed <meta> Content-Security-Policy without 'unsafe-eval'",
+        "source": "dom-csp-meta",
+        "confidence": "high",
+        "bounded": {
+          "observed": "A document <meta http-equiv=\"Content-Security-Policy\"> tag without 'unsafe-eval' was observed.",
+          "declaredOrPossible": "Restricts dynamic string evaluation (eval / new Function) in page scripts.",
+          "notVerified": "HTTP response CSP headers were not directly inspected by the DOM check.",
+          "unknown": "Server-side script integrity and backend security controls remain unknown."
+        }
+      },
+      {
+        "id": "csp.violation.eval-blocked",
+        "evidenceState": "observed",
+        "summary": "Observed 1 blocked eval()/script-src CSP violation event(s)",
+        "source": "securitypolicyviolation-listener",
+        "confidence": "high",
+        "bounded": {
+          "observed": "1 securitypolicyviolation event(s) for dynamic code evaluation were recorded.",
+          "declaredOrPossible": "Page CSP prevented dynamic string execution (could originate from site scripts or other extensions).",
+          "notVerified": "Which script or extension triggered the blocked eval() attempt was not verified.",
+          "unknown": "Downstream server behavior is unknown."
+        }
+      },
+      {
+        "id": "fingerprinting.canvas.call",
+        "evidenceState": "observed",
+        "summary": "Canvas Readout (toDataURL / toBlob / getImageData) call observed during this scan",
+        "source": "main-world-observer",
+        "confidence": "medium",
+        "bounded": {
+          "observed": "At least one call to Canvas Readout (toDataURL / toBlob / getImageData) was observed in the page MAIN world (unless forged/interfered by host scripts).",
+          "declaredOrPossible": "This API can be used for legitimate rendering/media/diagnostics or to derive browser/device fingerprint signals.",
+          "notVerified": "Whether the returned output was hashed, combined into a fingerprint, or transmitted off-device was not verified.",
+          "unknown": "Server-side device recognition, retention, sharing, and commercial use cannot be determined."
+        }
+      },
+      {
+        "id": "fingerprinting.webgl.call",
+        "evidenceState": "observed",
+        "summary": "WebGL Unmasked Renderer / Pixel Readout call observed during this scan",
+        "source": "main-world-observer",
+        "confidence": "medium",
+        "bounded": {
+          "observed": "At least one call to WebGL Unmasked Renderer / Pixel Readout was observed in the page MAIN world (unless forged/interfered by host scripts).",
+          "declaredOrPossible": "This API can be used for legitimate rendering/media/diagnostics or to derive browser/device fingerprint signals.",
+          "notVerified": "Whether the returned output was hashed, combined into a fingerprint, or transmitted off-device was not verified.",
+          "unknown": "Server-side device recognition, retention, sharing, and commercial use cannot be determined."
+        }
+      },
+      {
+        "id": "form.dob.surface",
+        "evidenceState": "observed",
+        "summary": "Observed form input metadata matching Full Date of Birth (birthdate) (GRUNDVERSORGUNG (Medium))",
+        "source": "dom-field-metadata",
+        "confidence": "high",
+        "bounded": {
+          "observed": "DOM input attribute metadata (Full Date of Birth (birthdate)) is present on this page. Typed field values were never read.",
+          "declaredOrPossible": "DOB-like input metadata observed (GRUNDVERSORGUNG layer). Site purpose was not verified; where only age eligibility is needed, an AskMI age_over_18 predicate is a data-minimizing option.",
+          "notVerified": "Whether any value was entered, whether submission occurred, and whether the site's purpose requires raw attributes were not verified.",
+          "unknown": "Server-side validation, storage, retention, onward sharing, and sale are unknown."
+        }
+      },
+      {
+        "id": "form.financial.surface",
+        "evidenceState": "observed",
+        "summary": "Observed form input metadata matching Financial / Tax Identifier (VULNERABLE (High))",
+        "source": "dom-field-metadata",
+        "confidence": "high",
+        "bounded": {
+          "observed": "DOM input attribute metadata (Financial / Tax Identifier) is present on this page. Typed field values were never read.",
+          "declaredOrPossible": "Financial/tax input metadata observed (VULNERABLE layer). Entered values and server handling were not verified; check relying-party context before disclosure.",
+          "notVerified": "Whether any value was entered, whether submission occurred, and whether the site's purpose requires raw attributes were not verified.",
+          "unknown": "Server-side validation, storage, retention, onward sharing, and sale are unknown."
+        }
+      },
+      {
+        "id": "permission.geolocation.granted",
+        "evidenceState": "observed",
+        "summary": "Geolocation permission state is Granted",
+        "source": "permissions-api",
+        "confidence": "high",
+        "bounded": {
+          "observed": "Browser Permissions API reports \"Geolocation\" as Granted.",
+          "declaredOrPossible": "Scripts in an allowed origin context can invoke Geolocation APIs without an additional prompt.",
+          "notVerified": "Whether this page actively read Geolocation data during this session was not verified.",
+          "unknown": "Whether any resulting capability data was stored or shared server-side is unknown."
+        }
+      }
+    ],
+    "declared": [
+      {
+        "id": "provider.notice.analytics",
+        "evidenceState": "declared",
+        "summary": "Provider privacy notice states that pseudonymous analytics and fraud-prevention telemetry may be processed.",
+        "source": "provider-notice",
+        "sourceReference": "https://checkout.example.co.uk/privacy",
+        "retrievedAt": "2026-11-01T12:09:00.000Z",
+        "independentlyVerified": false,
+        "scopeLimitation": "Provider statement recorded from cited notice; server-side adherence is not verified by this browser extension.",
+        "confidence": "not-applicable",
+        "bounded": {
+          "observed": "First-party notice reference recorded (https://checkout.example.co.uk/privacy).",
+          "declaredOrPossible": "Provider privacy notice states that pseudonymous analytics and fraud-prevention telemetry may be processed.",
+          "notVerified": "The collector has not independently verified whether server-side processing matches this declaration.",
+          "unknown": "Provider statement recorded from cited notice; server-side adherence is not verified by this browser extension."
+        }
+      }
+    ],
+    "potential": [
+      {
+        "id": "network.ip-address",
+        "evidenceState": "potential",
+        "summary": "Client IP address is normally visible to contacted first- and third-party servers",
+        "source": "protocol-architecture",
+        "confidence": "high",
+        "bounded": {
+          "observed": "Page uses standard HTTP/HTTPS networking.",
+          "declaredOrPossible": "Every contacted server normally receives the client's network IP address (or VPN/proxy egress IP).",
+          "notVerified": "Exact IP logging or geolocation lookup on remote servers was not verified.",
+          "unknown": "Server-side IP retention and correlation remain unknown."
+        }
+      },
+      {
+        "id": "browser.user-agent",
+        "evidenceState": "potential",
+        "summary": "Browser user agent available to scripts/headers: Mozilla/5.0 (Fixture High)",
+        "source": "browser-context",
+        "confidence": "high"
+      },
+      {
+        "id": "browser.screen-resolution",
+        "evidenceState": "potential",
+        "summary": "Screen dimensions readable by scripts: 2560 × 1440",
+        "source": "browser-context",
+        "confidence": "high"
+      },
+      {
+        "id": "browser.language",
+        "evidenceState": "potential",
+        "summary": "Preferred browser language readable by scripts/headers: en-GB",
+        "source": "browser-context",
+        "confidence": "high"
+      },
+      {
+        "id": "browser.timezone",
+        "evidenceState": "potential",
+        "summary": "System timezone readable via Intl API: Europe/London",
+        "source": "browser-context",
+        "confidence": "high"
+      }
+    ],
+    "unknown": [
+      {
+        "id": "server.storage",
+        "evidenceState": "unknown",
+        "summary": "What data is stored on first-party or third-party servers cannot be determined by this browser extension",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.retention",
+        "evidenceState": "unknown",
+        "summary": "Server-side retention periods and deletion practices cannot be determined from browser observation",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.profiling",
+        "evidenceState": "unknown",
+        "summary": "Internal profiling, identity linking, or automated decision-making on remote servers cannot be determined",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.onward-sharing",
+        "evidenceState": "unknown",
+        "summary": "Server-to-server onward data sharing cannot be determined from browser observation alone",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.data-sale",
+        "evidenceState": "unknown",
+        "summary": "Commercial resale or monetization of data cannot be inferred from cookies, tracker domains, request counts, or Surface Score",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      }
+    ],
+    "unavailable": []
+  },
+  "visibility": {
+    "available": true,
+    "highestLayer": "VULNERABLE (High)",
+    "fieldMetadataOnly": true,
+    "counts": {
+      "vulnerable": 1,
+      "grundversorgung": 1,
+      "welt": 0
+    },
+    "findings": [
+      {
+        "id": "form.dob",
+        "key": "dob",
+        "label": "Full Date of Birth (birthdate)",
+        "evidenceState": "observed",
+        "summary": "Full Date of Birth (birthdate) input field metadata observed",
+        "layer": "GRUNDVERSORGUNG (Medium)",
+        "hint": "DOB-like input metadata observed (GRUNDVERSORGUNG layer). Site purpose was not verified; where only age eligibility is needed, an AskMI age_over_18 predicate is a data-minimizing option.",
+        "purposeKnown": false,
+        "valueInspected": false,
+        "possibleMinimisation": {
+          "claimContractVersion": "1.0.0",
+          "observedOverCollection": [
+            "birthdate"
+          ],
+          "suggestedClaims": [
+            "age_over_18"
+          ],
+          "rationale": "Full date of birth requested; age >= 18 predicate is data-minimizing.",
+          "advisoryOnly": true
+        }
+      },
+      {
+        "id": "form.financial",
+        "key": "financial",
+        "label": "Financial / Tax Identifier",
+        "evidenceState": "observed",
+        "summary": "Financial / Tax Identifier input field metadata observed",
+        "layer": "VULNERABLE (High)",
+        "hint": "Financial/tax input metadata observed (VULNERABLE layer). Entered values and server handling were not verified; check relying-party context before disclosure.",
+        "purposeKnown": false,
+        "valueInspected": false,
+        "possibleMinimisation": null
+      }
+    ],
+    "proofSuggestion": {
+      "version": "0.3.0",
+      "contractVersion": "1.0.0",
+      "observedOverCollection": [
+        "birthdate"
+      ],
+      "suggestedMinimalClaims": [
+        "age_over_18"
+      ],
+      "rationale": "Full date of birth requested; age >= 18 predicate is data-minimizing.",
+      "note": "This is a local suggestion only. No presentation was started. Open your AskMI wallet to create a real proof.",
+      "advisoryOnly": true
+    }
+  },
+  "permissions": [
+    {
+      "key": "geolocation",
+      "label": "Geolocation",
+      "state": "Granted",
+      "evidenceState": "observed"
+    },
+    {
+      "key": "notifications",
+      "label": "Notifications",
+      "state": "Prompt",
+      "evidenceState": "potential"
+    },
+    {
+      "key": "camera",
+      "label": "Camera",
+      "state": "Denied",
+      "evidenceState": "potential"
+    },
+    {
+      "key": "microphone",
+      "label": "Microphone",
+      "state": "Denied",
+      "evidenceState": "potential"
+    },
+    {
+      "key": "clipboard",
+      "label": "Clipboard",
+      "state": "Prompt",
+      "evidenceState": "potential"
+    }
+  ],
+  "fingerprinting": [
+    {
+      "id": "fingerprinting.canvas",
+      "key": "canvas",
+      "label": "Canvas Readout (toDataURL / toBlob / getImageData)",
+      "evidenceState": "observed",
+      "observed": true,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.webgl",
+      "key": "webgl",
+      "label": "WebGL Unmasked Renderer / Pixel Readout",
+      "evidenceState": "observed",
+      "observed": true,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.audio",
+      "key": "audio",
+      "label": "AudioContext / OfflineAudioContext Oscillator",
+      "evidenceState": "not-observed",
+      "observed": false,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.webrtc",
+      "key": "webrtc",
+      "label": "WebRTC RTCPeerConnection",
+      "evidenceState": "not-observed",
+      "observed": false,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.evalAttempt",
+      "key": "evalAttempt",
+      "label": "Blocked Dynamic eval() CSP Violation",
+      "evidenceState": "observed",
+      "observed": true,
+      "source": "securitypolicyviolation-listener"
+    }
+  ],
+  "csp": {
+    "available": true,
+    "hasMetaCsp": true,
+    "metaBlocksEval": true,
+    "evalBlockedCount": 1,
+    "totalViolationCount": 1,
+    "violatedDirectives": [
+      "script-src"
+    ]
+  },
+  "integrity": {
+    "normalizationVersion": "1",
+    "contentHashAlgorithm": "sha-256",
+    "contentHash": "eb538b5e5d10bb5247ab561e54d12f8fb1425709e824daf7e92d18d7479bfe56",
+    "signature": null
+  }
+}

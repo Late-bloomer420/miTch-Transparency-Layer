@@ -11,10 +11,26 @@
       <header class="hero">
         <div class="brand-row">
           <div class="mark" aria-hidden="true">mT</div>
-          <div>
+          <div class="hero-copy">
             <h1>miTch Transparency Layer</h1>
-            <p>See what websites can know before deciding what to share.</p>
+            <p id="heroSubtitle">See what websites can know before deciding what to share.</p>
           </div>
+        </div>
+        <div class="toolbar-row" role="region" aria-label="Language and observation mode controls">
+          <label class="toolbar-control" for="langSelect">
+            <span id="langSwitchLabel">Language</span>
+            <select id="langSelect" aria-label="Language">
+              <option value="en">EN — English</option>
+              <option value="de">DE — Deutsch</option>
+            </select>
+          </label>
+          <label class="toolbar-control" for="collectionModeSelect">
+            <span id="modeSwitchLabel">Observation mode</span>
+            <select id="collectionModeSelect" aria-label="Observation mode">
+              <option id="modeContinuousOpt" value="continuous">Continuous observation</option>
+              <option id="modeOnDemandOpt" value="on-demand">Inspect on demand</option>
+            </select>
+          </label>
         </div>
       </header>
 
@@ -22,16 +38,16 @@
 
       <section class="score-panel" aria-labelledby="score-title">
         <div class="score-main">
-          <span class="section-kicker">Surface Score</span>
+          <span id="surfaceScoreKicker" class="section-kicker">Surface Score</span>
           <h2 id="score-title"><span id="scoreValue">--</span><small id="scoreScale">/100</small></h2>
           <p id="scoreCategory">Checking visible browser surfaces...</p>
           <p id="scoreSemantics" class="guardrail score-note">
             Informational surface summary (<code>surface-score-v1</code> · <code>visibility-rules-v1</code>). Low score ≠ safe; does not measure server collection, sharing, or sale; unavailable checks are never counted as zero.
           </p>
           <dl class="score-dimensions" aria-label="Surface Score Dimensions">
-            <div><dt>Coverage</dt><dd id="scoreCoverage">--</dd></div>
-            <div><dt>Exposure</dt><dd id="scoreExposure">--</dd></div>
-            <div><dt>Evidence</dt><dd id="scoreEvidence">--</dd></div>
+            <div><dt id="dimCoverage">Coverage</dt><dd id="scoreCoverage">--</dd></div>
+            <div><dt id="dimExposure">Exposure</dt><dd id="scoreExposure">--</dd></div>
+            <div><dt id="dimEvidence">Evidence</dt><dd id="scoreEvidence">--</dd></div>
           </dl>
           <p id="scoreComponents" class="score-components"></p>
         </div>
@@ -49,20 +65,20 @@
           <span id="scanState" class="status-pill">Scanning</span>
         </div>
         <dl class="site-list">
-          <div><dt>Origin</dt><dd id="domain">Unavailable</dd></div>
-          <div><dt>Protocol</dt><dd id="protocol">Unavailable</dd></div>
-          <div><dt>Page Title</dt><dd id="pageTitle">Unavailable</dd></div>
-          <div><dt>Collector</dt><dd id="collectorProvenance">--</dd></div>
-          <div><dt>Observed Window</dt><dd id="observationWindow">--</dd></div>
+          <div><dt id="labelOrigin">Origin</dt><dd id="domain">Unavailable</dd></div>
+          <div><dt id="labelProtocol">Protocol</dt><dd id="protocol">Unavailable</dd></div>
+          <div><dt id="labelPageTitle">Page Title</dt><dd id="pageTitle">Unavailable</dd></div>
+          <div><dt id="labelCollector">Collector</dt><dd id="collectorProvenance">--</dd></div>
+          <div><dt id="labelWindow">Observed Window</dt><dd id="observationWindow">--</dd></div>
         </dl>
       </section>
 
       <section class="grid-two">
         <article class="panel compact" aria-labelledby="cookies-title">
           <h2 id="cookies-title">Cookie Presence</h2>
-          <div class="metric-row"><span>Total cookies</span><strong id="cookieTotal">--</strong></div>
-          <div class="metric-row"><span>First-party</span><strong id="firstPartyCookies">--</strong></div>
-          <div class="metric-row"><span>Third-party scope</span><strong id="thirdPartyCookies">--</strong></div>
+          <div class="metric-row"><span id="labelTotalCookies">Total cookies</span><strong id="cookieTotal">--</strong></div>
+          <div class="metric-row"><span id="labelFirstPartyCookies">First-party</span><strong id="firstPartyCookies">--</strong></div>
+          <div class="metric-row"><span id="labelThirdPartyCookies">Third-party scope</span><strong id="thirdPartyCookies">--</strong></div>
         </article>
 
         <article class="panel compact" aria-labelledby="storage-title">
@@ -77,12 +93,12 @@
           <h2 id="visibility-layer-title">AskMI Data-Minimization &amp; Visibility Layer</h2>
           <span id="visibilityLayerBadge" class="status-pill">None Observed</span>
         </div>
-        <p class="guardrail">Inspects form input attribute metadata only (<code>WELT</code>, <code>GRUNDVERSORGUNG</code>, <code>VULNERABLE</code>). Entered values are never read.</p>
+        <p id="visibilityGuardrail" class="guardrail">Inspects form input attribute metadata only (<code>WELT</code>, <code>GRUNDVERSORGUNG</code>, <code>VULNERABLE</code>). Entered values are never read.</p>
         <div id="visibilityLayerList" class="signal-list"></div>
 
         <div id="proofBridgeCard" class="proof-bridge-card" hidden>
           <div class="section-head proof-bridge-head">
-            <h3>Suggested minimal AskMI proof</h3>
+            <h3 id="proofBridgeHeading">Suggested minimal AskMI proof</h3>
             <span id="proofBridgeStatus" class="export-status" aria-live="polite"></span>
           </div>
           <p id="proofBridgeBody" class="proof-bridge-body">
@@ -95,7 +111,7 @@
           <div class="proof-bridge-deeplink">
             <label class="proof-bridge-optin">
               <input id="enableWalletDeepLinkToggle" type="checkbox">
-              <span>Experimental wallet deep-links (localhost only)</span>
+              <span id="walletOptInLabel">Experimental wallet deep-links (localhost only)</span>
             </label>
             <button id="openLocalWalletBtn" type="button" class="action-btn tertiary" hidden>
               Open in local AskMI Wallet (experimental)
@@ -109,7 +125,7 @@
           <h2 id="third-party-title">Third-Party Network Activity</h2>
           <span id="thirdPartyDomainCount" class="status-pill">0 domains · 0 req</span>
         </div>
-        <p class="guardrail">Separates unique contacted domains, observed request counts, and local tracker-rule matches. Network contact ≠ verified payload or data sale.</p>
+        <p id="thirdPartyGuardrail" class="guardrail">Separates unique contacted domains, observed request counts, and local tracker-rule matches. Network contact ≠ verified payload or data sale.</p>
         <div id="thirdPartyDomainList" class="signal-list"></div>
       </section>
 
@@ -117,40 +133,72 @@
         <div class="section-head">
           <h2 id="fingerprint-title">Fingerprinting Surface Observation</h2>
         </div>
-        <p class="guardrail">API calls observed in page MAIN world since load (unless host scripts interfered). Not observed ≠ absent.</p>
+        <p id="fingerprintGuardrail" class="guardrail">API calls observed in page MAIN world since load (a determined site can still evade via iframe realms). Not observed ≠ absent.</p>
         <div id="fingerprintList" class="signal-list"></div>
       </section>
 
       <section class="panel" aria-labelledby="permissions-title">
-        <h2 id="permissions-title">Permission Surface</h2>
+        <h2 id="permissions-title">Permission Surface &amp; Extension Permissions</h2>
         <div id="permissionList" class="signal-list"></div>
+        <details id="permissionExplainDetails" class="explain-details">
+          <summary id="permissionExplainToggle">Why this extension requests browser permissions</summary>
+          <ul id="extensionPermissionExplainList" class="permission-explain-list"></ul>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="comparison-title">
+        <div class="section-head">
+          <h2 id="comparison-title">Before / After Comparison &amp; Local Session Timeline</h2>
+          <span id="comparisonStatus" class="export-status" role="status" aria-live="polite"></span>
+        </div>
+        <p id="comparisonGuardrail" class="guardrail">Opt-in local session timeline (off by default). Stores sanitized counts only; 1-click deletable.</p>
+        <div class="comparison-controls">
+          <label class="proof-bridge-optin">
+            <input id="enableTimelineToggle" type="checkbox">
+            <span id="timelineOptInLabel">Enable local session timeline (opt-in, off by default)</span>
+          </label>
+          <label class="toolbar-control" for="comparisonScenarioSelect">
+            <span id="scenarioLabel">Comparison scenario</span>
+            <select id="comparisonScenarioSelect">
+              <option id="scenarioConsentOpt" value="cookie-consent">Before vs. after cookie consent</option>
+              <option id="scenarioLoginOpt" value="login-state">Before vs. after login</option>
+              <option id="scenarioPageChangeOpt" value="page-change">Page change</option>
+            </select>
+          </label>
+          <div class="export-actions comparison-actions">
+            <button id="saveBeforeSnapBtn" type="button" class="action-btn">Save 'Before' snapshot</button>
+            <button id="saveAfterSnapBtn" type="button" class="action-btn secondary">Save 'After' &amp; compare</button>
+          </div>
+          <button id="clearTimelineBtn" type="button" class="action-btn tertiary">Delete all local snapshots</button>
+        </div>
+        <ul id="comparisonDiffList" class="comparison-diff-list"></ul>
       </section>
 
       <section class="panel report" aria-labelledby="report-title">
         <div class="section-head">
           <h2 id="report-title">Five-State Evidence Report</h2>
-          <span id="exportStatus" class="export-status" aria-live="polite"></span>
+          <span id="exportStatus" class="export-status" role="status" aria-live="polite"></span>
         </div>
-        <p class="guardrail">Not observed during this scan ≠ absent. URL query and fragment tokens are redacted from receipts.</p>
+        <p id="reportGuardrail" class="guardrail">Not observed during this scan ≠ absent. Provider declarations are separated from observed technical events. URL query and fragment tokens are redacted.</p>
         <div class="report-columns">
           <div>
-            <h3>Observed</h3>
+            <h3 id="headingObserved">● Observed (Technical Events)</h3>
             <ul id="observedFacts"></ul>
           </div>
           <div>
-            <h3>Declared (Provider Notices)</h3>
+            <h3 id="headingDeclared">◈ Declared (Provider Notices — Unverified)</h3>
             <ul id="declaredStatements"></ul>
           </div>
           <div>
-            <h3>Potential Access</h3>
+            <h3 id="headingPotential">◌ Potential Access</h3>
             <ul id="potentialAccess"></ul>
           </div>
           <div>
-            <h3>Unknown (Server / Downstream)</h3>
+            <h3 id="headingUnknown">? Unknown (Server / Downstream)</h3>
             <ul id="unknowns"></ul>
           </div>
           <div>
-            <h3>Unavailable Checks</h3>
+            <h3 id="headingUnavailable">⊘ Unavailable Checks</h3>
             <ul id="unavailableChecks"></ul>
           </div>
         </div>
@@ -160,13 +208,16 @@
         </div>
       </section>
 
-      <footer>
+      <footer id="footerText">
         We show what is technically observable and technically possible. We do not claim what happens on remote servers.
       </footer>
     </main>
     <script src="build-meta.js"></script>
+    <script src="domain-boundary.js"></script>
     <script src="proof-bridge.js"></script>
     <script src="surface-receipt.js"></script>
+    <script src="i18n.js"></script>
+    <script src="comparison-store.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

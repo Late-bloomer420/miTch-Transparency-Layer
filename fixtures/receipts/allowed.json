@@ -1,0 +1,296 @@
+{
+  "schema": "askmi.transparency.surface-receipt.v1",
+  "receiptId": "tsr_fixture_allowed_v1",
+  "capturedAt": "2026-11-01T12:00:00.000Z",
+  "collector": {
+    "name": "miTch Transparency Layer",
+    "version": "0.3.0",
+    "revision": "fixture-v1",
+    "ruleSetVersion": "visibility-rules-v1",
+    "scoringRuleVersion": "surface-score-v1",
+    "mode": "extension",
+    "collectionMode": "continuous",
+    "scanStatus": "complete",
+    "observationWindowMs": 2500,
+    "limitations": [
+      "MAIN-world API observations reflect calls seen since document_start unless the host page interfered via realm/prototype techniques."
+    ]
+  },
+  "page": {
+    "origin": "https://minimal.example",
+    "domain": "minimal.example",
+    "protocol": "HTTPS",
+    "title": "Minimal Service Portal",
+    "urlIncluded": false
+  },
+  "surfaceScore": {
+    "value": 0,
+    "observedMinimum": 0,
+    "unverifiedMaximum": 0,
+    "category": "Low Surface",
+    "semantics": "informational-surface-summary",
+    "scoringRuleVersion": "surface-score-v1",
+    "ruleSetVersion": "visibility-rules-v1",
+    "nonVerdictNotice": "Surface Score summarizes observed browser-visible surfaces only. Low score does not mean safe; unavailable inputs are never counted as zero.",
+    "dimensions": {
+      "observationCoverage": {
+        "checkedSources": 6,
+        "totalSources": 6,
+        "percent": 100,
+        "status": "complete",
+        "unavailableSources": []
+      },
+      "technicalExposure": {
+        "value": 0,
+        "observedMinimum": 0,
+        "unverifiedMaximum": 0,
+        "maxValue": 100,
+        "category": "Low Surface"
+      },
+      "evidenceQuality": {
+        "directObservedCount": 1,
+        "declaredCount": 0,
+        "potentialCount": 5,
+        "unavailableCount": 0,
+        "summary": "complete-browser-window-observation"
+      }
+    },
+    "components": {
+      "cookies": 0,
+      "thirdPartyRequests": 0,
+      "knownTrackerDomains": 0,
+      "fingerprintingCalls": 0,
+      "grantedPermissions": 0,
+      "promptPermissions": 0
+    }
+  },
+  "cookies": {
+    "available": true,
+    "total": 0,
+    "firstParty": 0,
+    "thirdParty": 0,
+    "valuesInspected": false
+  },
+  "storage": {
+    "available": true,
+    "valuesInspected": false,
+    "localStorage": {
+      "available": true,
+      "keyCount": 0,
+      "label": "0 keys (not observed)"
+    },
+    "sessionStorage": {
+      "available": true,
+      "keyCount": 0,
+      "label": "0 keys (not observed)"
+    }
+  },
+  "network": {
+    "available": true,
+    "thirdPartyRequestCount": 0,
+    "uniqueThirdPartyDomainCount": 0,
+    "knownTrackerDomainCount": 0,
+    "unattributedRequestCount": 0,
+    "domains": []
+  },
+  "report": {
+    "notObservedNote": "Not observed during this scan does not mean absent on the site or its servers.",
+    "observed": [
+      {
+        "id": "csp.meta.blocks-eval",
+        "evidenceState": "observed",
+        "summary": "Observed <meta> Content-Security-Policy without 'unsafe-eval'",
+        "source": "dom-csp-meta",
+        "confidence": "high",
+        "bounded": {
+          "observed": "A document <meta http-equiv=\"Content-Security-Policy\"> tag without 'unsafe-eval' was observed.",
+          "declaredOrPossible": "Restricts dynamic string evaluation (eval / new Function) in page scripts.",
+          "notVerified": "HTTP response CSP headers were not directly inspected by the DOM check.",
+          "unknown": "Server-side script integrity and backend security controls remain unknown."
+        }
+      }
+    ],
+    "declared": [],
+    "potential": [
+      {
+        "id": "network.ip-address",
+        "evidenceState": "potential",
+        "summary": "Client IP address is normally visible to contacted first- and third-party servers",
+        "source": "protocol-architecture",
+        "confidence": "high",
+        "bounded": {
+          "observed": "Page uses standard HTTP/HTTPS networking.",
+          "declaredOrPossible": "Every contacted server normally receives the client's network IP address (or VPN/proxy egress IP).",
+          "notVerified": "Exact IP logging or geolocation lookup on remote servers was not verified.",
+          "unknown": "Server-side IP retention and correlation remain unknown."
+        }
+      },
+      {
+        "id": "browser.user-agent",
+        "evidenceState": "potential",
+        "summary": "Browser user agent available to scripts/headers: Mozilla/5.0 (Fixture)",
+        "source": "browser-context",
+        "confidence": "high"
+      },
+      {
+        "id": "browser.screen-resolution",
+        "evidenceState": "potential",
+        "summary": "Screen dimensions readable by scripts: 1920 × 1080",
+        "source": "browser-context",
+        "confidence": "high"
+      },
+      {
+        "id": "browser.language",
+        "evidenceState": "potential",
+        "summary": "Preferred browser language readable by scripts/headers: en-US",
+        "source": "browser-context",
+        "confidence": "high"
+      },
+      {
+        "id": "browser.timezone",
+        "evidenceState": "potential",
+        "summary": "System timezone readable via Intl API: UTC",
+        "source": "browser-context",
+        "confidence": "high"
+      }
+    ],
+    "unknown": [
+      {
+        "id": "server.storage",
+        "evidenceState": "unknown",
+        "summary": "What data is stored on first-party or third-party servers cannot be determined by this browser extension",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.retention",
+        "evidenceState": "unknown",
+        "summary": "Server-side retention periods and deletion practices cannot be determined from browser observation",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.profiling",
+        "evidenceState": "unknown",
+        "summary": "Internal profiling, identity linking, or automated decision-making on remote servers cannot be determined",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.onward-sharing",
+        "evidenceState": "unknown",
+        "summary": "Server-to-server onward data sharing cannot be determined from browser observation alone",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      },
+      {
+        "id": "server.data-sale",
+        "evidenceState": "unknown",
+        "summary": "Commercial resale or monetization of data cannot be inferred from cookies, tracker domains, request counts, or Surface Score",
+        "source": "boundary-statement",
+        "confidence": "not-applicable"
+      }
+    ],
+    "unavailable": []
+  },
+  "visibility": {
+    "available": true,
+    "highestLayer": "None Detected",
+    "fieldMetadataOnly": true,
+    "counts": {
+      "vulnerable": 0,
+      "grundversorgung": 0,
+      "welt": 0
+    },
+    "findings": [],
+    "proofSuggestion": null
+  },
+  "permissions": [
+    {
+      "key": "geolocation",
+      "label": "Geolocation",
+      "state": "Denied",
+      "evidenceState": "potential"
+    },
+    {
+      "key": "notifications",
+      "label": "Notifications",
+      "state": "Denied",
+      "evidenceState": "potential"
+    },
+    {
+      "key": "camera",
+      "label": "Camera",
+      "state": "Denied",
+      "evidenceState": "potential"
+    },
+    {
+      "key": "microphone",
+      "label": "Microphone",
+      "state": "Denied",
+      "evidenceState": "potential"
+    },
+    {
+      "key": "clipboard",
+      "label": "Clipboard",
+      "state": "Denied",
+      "evidenceState": "potential"
+    }
+  ],
+  "fingerprinting": [
+    {
+      "id": "fingerprinting.canvas",
+      "key": "canvas",
+      "label": "Canvas Readout (toDataURL / toBlob / getImageData)",
+      "evidenceState": "not-observed",
+      "observed": false,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.webgl",
+      "key": "webgl",
+      "label": "WebGL Unmasked Renderer / Pixel Readout",
+      "evidenceState": "not-observed",
+      "observed": false,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.audio",
+      "key": "audio",
+      "label": "AudioContext / OfflineAudioContext Oscillator",
+      "evidenceState": "not-observed",
+      "observed": false,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.webrtc",
+      "key": "webrtc",
+      "label": "WebRTC RTCPeerConnection",
+      "evidenceState": "not-observed",
+      "observed": false,
+      "source": "main-world-observer"
+    },
+    {
+      "id": "fingerprinting.evalAttempt",
+      "key": "evalAttempt",
+      "label": "Blocked Dynamic eval() CSP Violation",
+      "evidenceState": "not-observed",
+      "observed": false,
+      "source": "securitypolicyviolation-listener"
+    }
+  ],
+  "csp": {
+    "available": true,
+    "hasMetaCsp": true,
+    "metaBlocksEval": true,
+    "evalBlockedCount": 0,
+    "totalViolationCount": 0,
+    "violatedDirectives": []
+  },
+  "integrity": {
+    "normalizationVersion": "1",
+    "contentHashAlgorithm": "sha-256",
+    "contentHash": "2b361829a8b9bf7d8de8dda16e3f1f686fd472edf5d0347a451b06abc2a21053",
+    "signature": null
+  }
+}

@@ -1,6 +1,6 @@
 # Ecosystem role and boundaries
 
-**Status:** Architecture direction for v0.4  
+**Status:** Adopted v0.4 Ecosystem Contract ([#19](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/19))  
 **Baseline date:** 2026-10-27  
 **Programme tracker:** [Issue #20](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20)
 
@@ -83,9 +83,11 @@ Form inspection is limited to structural metadata such as name, id, type, autoco
 
 ## Integration contracts
 
+See [ECOSYSTEM_INTEGRATION_PROPOSALS.md](ECOSYSTEM_INTEGRATION_PROPOSALS.md) for the cross-repository routing entries, schema pins, and compatibility specifications.
+
 ### 1. Surface Receipt
 
-The versioned receipt contract is defined in [TRANSPARENCY_RECEIPT_V1.md](TRANSPARENCY_RECEIPT_V1.md).
+The versioned receipt contract is defined in [TRANSPARENCY_RECEIPT_V1.md](TRANSPARENCY_RECEIPT_V1.md) and validated by [`schemas/surface-receipt.v1.schema.json`](../schemas/surface-receipt.v1.schema.json).
 
 It carries:
 
@@ -100,9 +102,9 @@ It carries:
 
 ### 2. Proof Suggestion
 
-The v0.3 Proof Bridge is advisory:
+The v0.3 Proof Bridge (`schemas/proof-suggestion.v0.3.schema.json`) is advisory:
 
-- high-confidence DOB-like form metadata may suggest canonical `age_over_18`;
+- high-confidence DOB-like form metadata may suggest canonical `age_over_18` (`contractVersion: "1.0.0"`);
 - ambiguous, health and financial fields produce no automatic claim mapping;
 - the suggestion never starts or authorizes OID4VP;
 - the wallet independently validates request, relying party, policy, binding, consent and presentation state;
@@ -146,24 +148,20 @@ The workspace may route reviewed work items to this repository. Private intervie
 
 - Breaking receipt changes require a new schema version.
 - Proof Suggestion and Receipt versions evolve independently.
-- Canonical AskMI claim names must be version-pinned and compatibility-tested.
+- Canonical AskMI claim names must be version-pinned and compatibility-tested (`test/ecosystem-contracts.test.mjs`).
 - Copying a vocabulary into this repository does not make this repository its authority.
 - Unknown versions fail validation explicitly; they are not silently coerced.
 
-## Current verified limitations
+## Verified v0.4 Programme Deliverables & Remaining Boundaries
 
-At the 2026-10-27 baseline:
+All v0.4 programme gates (`G0`–`G4`, issues [#14–#22](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20)) are implemented and verified by deterministic tests:
 
-- the manifest and source are v0.3.0;
-- the README still points to a v0.1 release zip;
-- the post-merge #8 review found incomplete Three-Layer Report serialization and a request/domain count-label defect;
-- `registrableApproximation()` is not Public-Suffix-List aware;
-- host permissions cover all HTTP/HTTPS pages;
-- the MAIN-world observer needs stronger behavior-preservation evidence;
-- Proof Bridge tests cover the canonical DOB mapping and localhost guard, but not the full observation/receipt surface;
-- v0.3 is an experimental local tool, not certified, audited or established as production-ready.
-
-These limitations are tracked by [issues #14–#19](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues).
+- **Surface Receipt v1 (`#15`, `#21`):** Shared normalized builder (`surface-receipt.js`), URL query/fragment stripping, Markdown metacharacter escaping, and 5-state evidence model.
+- **Scan Provenance & Release Integrity (`#14`):** `scanStatus` (`complete` / `limited` / `unsupported` / `preview` / `error`), non-improvement score bounds (`value: null` when incomplete), badge honesty, and deterministic zip verifier (`scripts/build-release.mjs`).
+- **Observation Reliability & Stealth (`#17`, `#22`):** PSL/eTLD+1 domain boundary parser (`domain-boundary.js`), zero-DOM-footprint private `MessageChannel` observer (`page-observer.js`), throttled SPA `MutationObserver`, and `continuous` vs `on-demand` collection modes (`docs/PERMISSION_MODEL.md`).
+- **Human-Centred DE/EN UX (`#16`):** Full English/German localization (`i18n.js`), fixed non-colour symbols, 6-part plain-language signal disclosures, local before/after snapshot comparisons, and opt-in deletable session timeline (`comparison-store.js`, `docs/ACCESSIBILITY_EVIDENCE.md`).
+- **Developer & Auditor Tooling (`#18`):** JSON Schema (`schemas/surface-receipt.v1.schema.json`), standalone validator (`receipt-validator.js`), privacy-surface diff engine (`receipt-diff.js`), deterministic fixtures (`fixtures/receipts/*.json`), CLI (`cli/mitch-scan.mjs`), and optional sanitized CI workflow (`.github/workflows/surface-audit.yml`).
+- **Experimental Status Boundary:** `v0.3.0` remains an experimental, local-only tool; it is not certified, independently audited, or a legal/compliance authority.
 
 ## Decision rule
 

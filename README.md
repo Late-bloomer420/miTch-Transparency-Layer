@@ -1,6 +1,6 @@
 # miTch Transparency Layer
 
-miTch Transparency Layer is a Manifest V3 Chrome extension that shows users what websites can technically access, observe, infer, or request from their browser.
+miTch Transparency Layer is a Manifest V3 Chrome extension and local CLI toolkit that shows users, developers, and reviewers what websites can technically access, observe, infer, or request from their browser.
 
 Core principle:
 
@@ -17,39 +17,36 @@ The extension is the AskMI ecosystem's experimental **Visibility & Evidence Comp
 
 Transparency observations, Surface Scores, and Proof Bridge suggestions are advisory. They never authorize, deny, or influence credential disclosure and are not compliance, fraud, trust, or safety verdicts.
 
-Current status: **v0.3.0 experimental/local-only**. It is not certified, independently audited, or established as production-ready. The evidence-gated v0.4 programme is tracked in [issue #20](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20).
+Current status: **v0.3.0 experimental/local-only** (with all v0.4 programme gates `G0`–`G4` from [Issue #20](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20) implemented and verified). It is not certified, independently audited, or established as production-ready.
 
 ## Features
 
-- Current website detection: domain, protocol, and page title
-- Cookie analysis: total, first-party, and third-party cookies when detectable
-- Storage analysis: localStorage and sessionStorage usage
-- Fingerprinting surface detection: Canvas, WebGL, AudioContext, WebRTC, and dynamic `eval()` CSP enforcement
-- Third-party domain classification: distinguishes known analytics/ad trackers from external CDN resources
-- AskMI Data-Minimization & Visibility Layer: classifies form inputs (`WELT`, `GRUNDVERSORGUNG`, `VULNERABLE`) using field metadata only (never reading typed values)
-- AskMI Proof Bridge (v0.3): maps high-confidence over-collection (such as full Date of Birth fields) to a local, canonical AskMI minimal proof suggestion (`age_over_18`)
-- Permission surface: geolocation, notifications, camera, microphone, and clipboard
-- Surface Score (`surface-score-v1`): informational surface summary separating observation coverage, technical exposure, and evidence quality (low score ≠ safe; unavailable checks are never counted as zero)
-- Five-state evidence report: observed, declared, potential, unknown, and unavailable checks (exportable as Markdown or JSON Surface Receipt v1)
+- **Bilingual Human-Centred UI (`EN` / `DE`):** Full English and German interface (`i18n.js`) with non-colour accessibility symbols (`●`, `◈`, `◌`, `◇`, `?`, `⊘`, `○`) and expandable 6-part plain-language signal disclosures (*Observed*, *Declared or possible*, *Not verified*, *Unknown*, *Why it matters*, *User choices*).
+- **Collection Modes (`continuous` vs `on-demand`):** Inspect tabs automatically or restrict active tab/cookie/DOM inspection to explicit user clicks ([Permission Model](docs/PERMISSION_MODEL.md)).
+- **PSL / eTLD+1 Site Boundaries (`domain-boundary.js`):** Public-Suffix-List-aware domain classification across multi-label public suffixes (`.co.uk`, `.com.au`, `.co.jp`, shared hosting suffixes, IPv4/IPv6, and `localhost`) with separated request, unique-domain, and tracker-domain counts.
+- **Stealth MAIN-World Observer (`page-observer.js`):** Zero `data-mitch-*` DOM attributes and zero global `CustomEvent` emissions; uses a private `MessageChannel` handshake at `document_start` and `Proxy` + `WeakMap` wrapper hygiene preserving `Function.prototype.toString`, descriptors, `instanceof`, and exceptions.
+- **Dynamic SPA Form Observation (`content.js`):** Throttled `MutationObserver` rescans dynamically injected forms/inputs using structural metadata only (never reading typed values).
+- **Local Before/After Comparison & Opt-In Session Timeline (`comparison-store.js`):** Compare snapshots across login state, cookie consent, or page changes, with an opt-in (default-OFF) local session timeline and 1-click deletion.
+- **AskMI Proof Bridge (v0.3):** Maps high-confidence over-collection (such as full Date of Birth fields) to a local, canonical AskMI minimal proof suggestion (`age_over_18`, `contractVersion: "1.0.0"`).
+- **Surface Score (`surface-score-v1`):** Informational surface summary separating observation coverage, technical exposure, and evidence quality (`value: null` with `[observedMinimum, unverifiedMaximum]` bounds whenever scan status is incomplete; low score ≠ safe).
+- **Surface Receipt v1 (`askmi.transparency.surface-receipt.v1`):** Five-state evidence report (`observed`, `declared`, `potential`, `unknown`, `unavailable`) with origin-only URL redaction, Markdown metacharacter escaping, and SHA-256 canonical integrity hash.
 
-## AskMI Proof Bridge (v0.3)
+## Developer & Auditor CLI (`cli/mitch-scan.mjs`)
 
-When a webpage form requests over-collected personal attributes (for example, a full Date of Birth / `birthdate`), the **Proof Bridge** surfaces a local-only minimal proof suggestion aligned with `@askmi/shared-types/contracts/claim-contract` (`contractVersion: "1.0.0"`):
+Validate receipts against the JSON Schema, compute privacy-surface diffs, or run deterministic scans without launching Chrome manually:
 
-- **What it does:**
-  - Maps high-confidence `birthdate` form fields onto the canonical EUDI predicate claim `age_over_18`.
-  - Allows you to copy a self-contained JSON or Markdown **Proof Suggestion** receipt to your clipboard.
-  - Provides an opt-in, localhost-only (`http://localhost:5174/`) experimental hand-off link for developers running the local AskMI Wallet PWA.
-- **What it deliberately does NOT do:**
-  - Never reads or stores any values typed into form inputs.
-  - Never initiates an OID4VP presentation flow or contacts any remote verifier, wallet, or backend server.
-  - Never guesses minimal predicates for ambiguous, medical (`VULNERABLE`), or financial fields (fail-closed).
+```bash
+# Validate a Surface Receipt v1 JSON file
+node cli/mitch-scan.mjs validate fixtures/receipts/allowed.json
 
-## Changelog
+# Compare two receipts (JSON or Markdown diff of score, domains, observed/unavailable checks)
+node cli/mitch-scan.mjs diff fixtures/receipts/allowed.json fixtures/receipts/high-surface.json --format markdown
 
-- **v0.3.0** — Added the AskMI Proof Bridge (`proof-bridge.js`), canonical `age_over_18` minimal proof suggestion card with JSON/Markdown export, opt-in localhost-only wallet deep-link, and Node test suite (`test/proof-bridge.test.mjs`). See [docs/UPGRADE_PLAN_V03.md](docs/UPGRADE_PLAN_V03.md).
-- **v0.2.0** — Added real-world page hooks (`page-observer.js`), CSP `eval()` violation tracking, AskMI Visibility Layer form classification, third-party tracker domain breakdown, and Markdown/JSON Surface Receipt export. See [docs/UPGRADE_PLAN_V02.md](docs/UPGRADE_PLAN_V02.md).
-- **v0.1.0** — Initial Manifest V3 release with cookie, storage, permission, and surface score reporting.
+# Scan a built-in fixture or local HTML file into a normalized Surface Receipt v1
+node cli/mitch-scan.mjs scan --fixture allowed
+```
+
+See [docs/AUDITOR_AND_DEVELOPER_TOOLING.md](docs/AUDITOR_AND_DEVELOPER_TOOLING.md) for full CLI documentation, exit codes, and the optional sanitized GitHub Action (`.github/workflows/surface-audit.yml`).
 
 ## Install Locally
 
@@ -64,19 +61,29 @@ Run the deterministic unit test suite and release-integrity verifier locally (al
 
 ```bash
 node --test test/*.test.mjs
+node cli/mitch-scan.mjs validate fixtures/receipts/allowed.json
 node scripts/build-release.mjs --verify
 ```
 
-Current automated coverage verifies Proof Bridge mapping (`test/proof-bridge.test.mjs`), Surface Receipt v1 normalization/redaction/Markdown escaping (`test/surface-receipt.test.mjs`), and scan provenance, Surface Score non-improvement invariants, badge failure states, and deterministic zip integrity (`test/scan-score-and-release.test.mjs`). Browser-observer isolation and PSL domain-boundary hardening are tracked in [#17](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/17) and [#22](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/22).
+Automated test suites:
+- [`test/surface-receipt.test.mjs`](test/surface-receipt.test.mjs) — Surface Receipt v1 normalization, URL redaction, Markdown injection escaping, and 5-state evidence preservation.
+- [`test/scan-score-and-release.test.mjs`](test/scan-score-and-release.test.mjs) — Scan provenance, Surface Score non-improvement invariants, badge failure states, and deterministic zip integrity.
+- [`test/domain-boundary.test.mjs`](test/domain-boundary.test.mjs) — PSL/eTLD+1 domain boundary classification, IP/localhost handling, and third-party request vs unique domain separation.
+- [`test/observer-hygiene.test.mjs`](test/observer-hygiene.test.mjs) — Zero DOM/event footprint, private `MessageChannel` transport, `Function.prototype.toString` preservation, and dynamic SPA form rescans.
+- [`test/i18n-and-honesty.test.mjs`](test/i18n-and-honesty.test.mjs) — DE/EN localization completeness, non-colour symbols, 6-part plain-language explanations, and anti-overclaim guardrails.
+- [`test/comparison-store.test.mjs`](test/comparison-store.test.mjs) — Local before/after snapshot diffs and opt-in default-OFF session timeline with 1-click deletion.
+- [`test/tooling-cli-diff.test.mjs`](test/tooling-cli-diff.test.mjs) — JSON Schema validator, deterministic fixtures, privacy-surface diff engine, and `cli/mitch-scan.mjs` commands.
+- [`test/ecosystem-contracts.test.mjs`](test/ecosystem-contracts.test.mjs) & [`test/proof-bridge.test.mjs`](test/proof-bridge.test.mjs) — Version-pinned `age_over_18` (`1.0.0`) claim contract compatibility, fail-closed version checks, and localhost deep-link guards.
 
-## Architecture and roadmap
+## Architecture and documentation
 
 - [Ecosystem role and authority boundaries](docs/ECOSYSTEM_ROLE_AND_BOUNDARIES.md)
-- [Transparency Surface Receipt v1 draft](docs/TRANSPARENCY_RECEIPT_V1.md)
+- [Cross-repository ecosystem integration proposals](docs/ECOSYSTEM_INTEGRATION_PROPOSALS.md)
+- [Transparency Surface Receipt v1 specification](docs/TRANSPARENCY_RECEIPT_V1.md)
+- [Permission model & MAIN-world observer boundaries](docs/PERMISSION_MODEL.md)
+- [Accessibility & bilingual UX evidence](docs/ACCESSIBILITY_EVIDENCE.md)
+- [Auditor & developer CLI tooling guide](docs/AUDITOR_AND_DEVELOPER_TOOLING.md)
 - [Evidence-gated v0.4 product roadmap](docs/PRODUCT_ROADMAP_V04.md)
-- [v0.4 programme tracker](https://github.com/Late-bloomer420/miTch-Transparency-Layer/issues/20)
-- [v0.3 Proof Bridge plan](docs/UPGRADE_PLAN_V03.md)
-- [v0.2 observation upgrade plan](docs/UPGRADE_PLAN_V02.md)
 
 ## Release Package
 
@@ -94,8 +101,6 @@ Regenerate and verify the package after changing any extension runtime file or `
 node scripts/build-release.mjs
 node scripts/build-release.mjs --verify
 ```
-
-See [release/RELEASE_CHECKLIST.md](release/RELEASE_CHECKLIST.md) for the release-binding checklist. Note: this package remains **experimental / local-only** (`v0.3.0`) and makes no certification, compliance, or production-readiness claim.
 
 ## Privacy Policy
 
