@@ -1,4 +1,4 @@
-const $ = (id) => document.getElementById(id);
+const $ = (id) => (typeof document !== "undefined" ? document.getElementById(id) : null);
 
 let latestReceipt = null;
 
@@ -12,11 +12,13 @@ const permissionQueries = [
   { key: "clipboard", label: "Clipboard", name: "clipboard-read" }
 ];
 
-document.addEventListener("DOMContentLoaded", () => {
-  bindExportButtons();
-  bindProofBridgeButtons();
-  init();
-});
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("DOMContentLoaded", () => {
+    bindExportButtons();
+    bindProofBridgeButtons();
+    init();
+  });
+}
 
 function bindExportButtons() {
   const mdBtn = $("copyMarkdownBtn");
@@ -196,15 +198,34 @@ function getManifestVersion() {
       const m = chrome.runtime.getManifest();
       if (m && m.version) return m.version;
     }
+    if (
+      typeof globalThis !== "undefined" &&
+      globalThis.MITCH_BUILD_META &&
+      globalThis.MITCH_BUILD_META.collectorVersion
+    ) {
+      return globalThis.MITCH_BUILD_META.collectorVersion;
+    }
   } catch {
     // Fallback below
   }
   return "0.3.0";
 }
 
+function getCollectorRevision() {
+  if (
+    typeof globalThis !== "undefined" &&
+    globalThis.MITCH_BUILD_META &&
+    typeof globalThis.MITCH_BUILD_META.sourceRevision === "string"
+  ) {
+    return globalThis.MITCH_BUILD_META.sourceRevision;
+  }
+  return "working-tree";
+}
+
 async function init() {
   const receiptEngine = globalThis.MitchSurfaceReceipt;
   const collectorVersion = getManifestVersion();
+  const collectorRevision = getCollectorRevision();
 
   try {
     const hasExtensionTabs =
@@ -215,7 +236,7 @@ async function init() {
       Boolean(chrome.runtime.id);
 
     if (!hasExtensionTabs) {
-      await initStandalonePreview(collectorVersion);
+      await initStandalonePreview(collectorVersion, collectorRevision);
       return;
     }
 
@@ -223,6 +244,7 @@ async function init() {
     if (!tab || !tab.url || !/^https?:\/\//i.test(tab.url)) {
       const unsupportedReceipt = receiptEngine.buildSurfaceReceiptModel({
         collectorVersion,
+        collectorRevision,
         mode: "extension",
         scanStatus: "unsupported",
         url: (tab && tab.url) || null,
@@ -251,6 +273,7 @@ async function init() {
 
     const receipt = receiptEngine.buildSurfaceReceiptModel({
       collectorVersion,
+      collectorRevision,
       mode: "extension",
       url,
       title: tab.title || "Untitled page",
@@ -267,6 +290,7 @@ async function init() {
     if (receiptEngine) {
       const errReceipt = receiptEngine.buildSurfaceReceiptModel({
         collectorVersion,
+        collectorRevision,
         mode: "extension",
         scanStatus: "error",
         limitations: ["Unexpected error during popup scan orchestration."]
@@ -276,7 +300,7 @@ async function init() {
   }
 }
 
-async function initStandalonePreview(collectorVersion) {
+async function initStandalonePreview(collectorVersion, collectorRevision = getCollectorRevision()) {
   const receiptEngine = globalThis.MitchSurfaceReceipt;
   const url = new URL(window.location.href);
   let cookieAvailable = true;
@@ -305,6 +329,7 @@ async function initStandalonePreview(collectorVersion) {
   const permissions = await getPermissions();
   const receipt = receiptEngine.buildSurfaceReceiptModel({
     collectorVersion,
+    collectorRevision,
     mode: "preview",
     scanStatus: "preview",
     url: /^https?:\/\//i.test(url.href) ? url : "http://localhost/",
@@ -412,26 +437,171 @@ async function getPermissions() {
   return results;
 }
 
+function deriveScanBannerModel(receipt) {
+  const status = receipt && receipt.collector ? receipt.collector.scanStatus : "error";
+  if (status === "complete") {
+    return { hidden: true, cls: "scan-mode-banner", text: "" };
+  }
+  if (status === "preview") {
+    return {
+      hidden: false,
+      cls: "scan-mode-banner banner-preview",
+      text: "Standalone Preview Mode — Displaying local preview context only (not a live cross-origin browser tab scan)."
+    };
+  }
+  if (status === "limited") {
+    return {
+      hidden: false,
+      cls: "scan-mode-banner",
+      text: "Limited Scan — One or more browser surface checks were unavailable. Missing checks are reported as Unavailable and never counted as zero or clean."
+    };
+  }
+  if (status === "unsupported") {
+    return {
+      hidden: false,
+      cls: "scan-mode-banner banner-danger",
+      text: "Unsupported Tab — Browser policy restricts extension inspection on non-HTTP(S) or privileged pages."
+    };
+  }
+  return {
+    hidden: false,
+    cls: "scan-mode-banner banner-danger",
+    text: "Scan Error — Browser surface checks could not complete reliably on this tab."
+  };
+}
+
+function deriveScoreViewModel(receipt) {
+  const surfaceScore = receipt.surfaceScore;
+  const status = receipt.collector.scanStatus;
+  const cov = surfaceScore.dimensions.observationCoverage;
+  const exp = surfaceScore.dimensions.technicalExposure;
+  const qual = surfaceScore.dimensions.evidenceQuality;
+  const c = surfaceScore.components;
+  const fmt = (v) => (v === null || v === undefined ? "unavail" : `+${v}`);
+  const componentsLine = `Components (${surfaceScore.scoringRuleVersion}): cookies ${fmt(c.cookies)} · 3P req ${fmt(c.thirdPartyRequests)} · tracker rules ${fmt(c.knownTrackerDomains)} · FP calls ${fmt(c.fingerprintingCalls)} · perms ${fmt(c.grantedPermissions)}/${fmt(c.promptPermissions)}`;
+
+  const coverageText = `${cov.percent}% (${cov.checkedSources}/${cov.totalSources})`;
+  const evidenceText = `${qual.directObservedCount} obs · ${qual.unavailableCount} unavail`;
+
+  if (status === "preview") {
+    return {
+      scoreValue: "Preview",
+      scoreScale: "",
+      titleClass: "is-preview",
+      scoreCategory: surfaceScore.category,
+      scoreCoverage: coverageText,
+      scoreExposure: "Preview Only",
+      scoreEvidence: evidenceText,
+      scoreComponents: `${componentsLine} (local preview context only)`,
+      ringPercent: 0,
+      ringStroke: "var(--accent-2)"
+    };
+  }
+
+  if (
+    status === "limited" &&
+    surfaceScore.observedMinimum !== null &&
+    surfaceScore.unverifiedMaximum !== null
+  ) {
+    const rangeStr = `${surfaceScore.observedMinimum}–${surfaceScore.unverifiedMaximum}`;
+    return {
+      scoreValue: rangeStr,
+      scoreScale: "/100",
+      titleClass: "is-range",
+      scoreCategory: surfaceScore.category,
+      scoreCoverage: coverageText,
+      scoreExposure: `${exp.observedMinimum}–${exp.unverifiedMaximum}/100`,
+      scoreEvidence: evidenceText,
+      scoreComponents: componentsLine,
+      ringPercent: surfaceScore.unverifiedMaximum,
+      ringStroke: surfaceScore.unverifiedMaximum > 75 ? "var(--danger)" : "var(--warning)"
+    };
+  }
+
+  if (surfaceScore.value === null) {
+    return {
+      scoreValue: "--",
+      scoreScale: "/100",
+      titleClass: "",
+      scoreCategory:
+        status === "error"
+          ? "Unavailable — scan failed without reliable evidence."
+          : "Unavailable — scan did not inspect an HTTP/HTTPS page.",
+      scoreCoverage: coverageText,
+      scoreExposure: "Unavailable",
+      scoreEvidence: evidenceText,
+      scoreComponents: "Components unavailable (missing evidence is never counted as zero).",
+      ringPercent: 0,
+      ringStroke: "var(--muted)"
+    };
+  }
+
+  return {
+    scoreValue: String(surfaceScore.value),
+    scoreScale: "/100",
+    titleClass: "",
+    scoreCategory: surfaceScore.category,
+    scoreCoverage: coverageText,
+    scoreExposure: `${exp.value}/100`,
+    scoreEvidence: evidenceText,
+    scoreComponents: componentsLine,
+    ringPercent: surfaceScore.value,
+    ringStroke:
+      surfaceScore.value > 75
+        ? "var(--danger)"
+        : surfaceScore.value > 50
+          ? "var(--warning)"
+          : surfaceScore.value > 25
+            ? "var(--accent-2)"
+            : "var(--accent)"
+  };
+}
+
 function renderReceipt(receipt) {
   latestReceipt = receipt;
+
+  if (typeof document !== "undefined" && document.body) {
+    document.body.dataset.scanStatus = receipt.collector.scanStatus;
+    document.body.dataset.collectorMode = receipt.collector.mode;
+  }
+
+  // 0. Provenance / Mode Banner
+  const bannerEl = $("scanModeBanner");
+  if (bannerEl) {
+    const banner = deriveScanBannerModel(receipt);
+    bannerEl.hidden = banner.hidden;
+    bannerEl.className = banner.cls;
+    bannerEl.textContent = banner.text;
+  }
 
   // 1. Scan State Pill & Website Provenance
   const scanPill = $("scanState");
   const statusMap = {
     complete: { text: "Complete Scan", cls: "status-pill" },
     limited: { text: "Limited Scan", cls: "status-pill pill-warning" },
-    preview: { text: "Preview (Mock)", cls: "status-pill pill-warning" },
+    preview: { text: "Standalone Preview", cls: "status-pill pill-warning" },
     unsupported: { text: "Unsupported Tab", cls: "status-pill pill-danger" },
     error: { text: "Scan Error", cls: "status-pill pill-danger" }
   };
   const pillMeta = statusMap[receipt.collector.scanStatus] || statusMap.limited;
-  scanPill.textContent = pillMeta.text;
-  scanPill.className = pillMeta.cls;
+  if (scanPill) {
+    scanPill.textContent = pillMeta.text;
+    scanPill.className = pillMeta.cls;
+  }
 
   $("domain").textContent = receipt.page.origin;
   $("protocol").textContent = receipt.page.protocol;
   $("pageTitle").textContent = receipt.page.title;
-  $("collectorProvenance").textContent = `v${receipt.collector.version} · ${receipt.collector.ruleSetVersion} · ${receipt.collector.mode}`;
+  $("collectorProvenance").textContent = `v${receipt.collector.version} (${receipt.collector.revision}) · ${receipt.collector.ruleSetVersion} · ${receipt.collector.mode}`;
+  const windowEl = $("observationWindow");
+  if (windowEl) {
+    windowEl.textContent =
+      receipt.collector.scanStatus === "preview"
+        ? "Preview (no live tab)"
+        : receipt.collector.scanStatus === "unsupported" || receipt.collector.scanStatus === "error"
+          ? "Unavailable"
+          : `${receipt.collector.observationWindowMs} ms`;
+  }
 
   // 2. Cookies & Storage (never displaying 0 when unavailable!)
   $("cookieTotal").textContent = receipt.cookies.available ? String(receipt.cookies.total) : "Unavailable";
@@ -491,7 +661,7 @@ function renderReceipt(receipt) {
   );
 
   // 7. Score & Dimensions
-  renderScoreSection(receipt.surfaceScore);
+  renderScoreSection(receipt);
 
   // 8. Five-State Evidence Report
   renderFiveStateReport(receipt.report);
@@ -633,42 +803,32 @@ function renderSignals(containerId, signals) {
   );
 }
 
-function renderScoreSection(surfaceScore) {
+function renderScoreSection(receipt) {
   const circumference = 326.73;
   const arc = $("scoreArc");
-  const cov = surfaceScore.dimensions.observationCoverage;
-  const exp = surfaceScore.dimensions.technicalExposure;
-  const qual = surfaceScore.dimensions.evidenceQuality;
+  const vm = deriveScoreViewModel(receipt);
 
-  $("scoreCoverage").textContent = `${cov.percent}% (${cov.checkedSources}/${cov.totalSources})`;
-  $("scoreExposure").textContent = exp.value === null ? "Unavailable" : `${exp.value}/100`;
-  $("scoreEvidence").textContent = `${qual.directObservedCount} obs · ${qual.unavailableCount} unavail`;
-
-  if (surfaceScore.value === null) {
-    $("scoreValue").textContent = "--";
-    $("scoreCategory").textContent = "Unavailable — scan did not inspect an HTTP/HTTPS page.";
-    arc.style.strokeDashoffset = String(circumference);
-    arc.style.stroke = "var(--muted)";
-    $("scoreComponents").textContent = "Components unavailable (missing evidence is never counted as zero).";
-    return;
+  const titleEl = $("score-title");
+  if (titleEl) {
+    titleEl.className = vm.titleClass;
+  }
+  const scaleEl = $("scoreScale");
+  if (scaleEl) {
+    scaleEl.textContent = vm.scoreScale;
   }
 
-  const offset = circumference - (surfaceScore.value / 100) * circumference;
-  $("scoreValue").textContent = String(surfaceScore.value);
-  $("scoreCategory").textContent = surfaceScore.category;
-  arc.style.strokeDashoffset = String(offset);
-  arc.style.stroke =
-    surfaceScore.value > 75
-      ? "var(--danger)"
-      : surfaceScore.value > 50
-        ? "var(--warning)"
-        : surfaceScore.value > 25
-          ? "var(--accent-2)"
-          : "var(--accent)";
+  $("scoreCoverage").textContent = vm.scoreCoverage;
+  $("scoreExposure").textContent = vm.scoreExposure;
+  $("scoreEvidence").textContent = vm.scoreEvidence;
+  $("scoreValue").textContent = vm.scoreValue;
+  $("scoreCategory").textContent = vm.scoreCategory;
+  $("scoreComponents").textContent = vm.scoreComponents;
 
-  const c = surfaceScore.components;
-  const fmt = (v) => (v === null ? "n/a" : `+${v}`);
-  $("scoreComponents").textContent = `Components: cookies ${fmt(c.cookies)} · 3P req ${fmt(c.thirdPartyRequests)} · tracker rules ${fmt(c.knownTrackerDomains)} · FP calls ${fmt(c.fingerprintingCalls)} · perms ${fmt(c.grantedPermissions)}/${fmt(c.promptPermissions)}`;
+  if (arc) {
+    const offset = circumference - (vm.ringPercent / 100) * circumference;
+    arc.style.strokeDashoffset = String(offset);
+    arc.style.stroke = vm.ringStroke;
+  }
 }
 
 function renderFiveStateReport(report) {
@@ -726,4 +886,13 @@ function sameRegistrableHost(cookieDomain, pageHost) {
   const cleanCookieDomain = cookieDomain.replace(/^\./, "").toLowerCase();
   const cleanPageHost = pageHost.toLowerCase();
   return cleanPageHost === cleanCookieDomain || cleanPageHost.endsWith(`.${cleanCookieDomain}`);
+}
+
+if (typeof module === "object" && module.exports) {
+  module.exports = {
+    deriveScanBannerModel,
+    deriveScoreViewModel,
+    normalizePermissionState,
+    sameRegistrableHost
+  };
 }

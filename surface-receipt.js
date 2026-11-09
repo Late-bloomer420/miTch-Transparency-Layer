@@ -1191,6 +1191,15 @@
       }
     }
 
+    // Promote scanStatus to "limited" if any individual surface check reported unavailable
+    if (!explicitScanStatus && scanStatus === "complete" && unavailable.length > 0) {
+      scanStatus = "limited";
+      limitations.push("One or more individual browser surface checks returned unavailable results.");
+    }
+    if (scanStatus === "limited" && limitations.length === 0) {
+      limitations.push("Scan completed with partial browser surface coverage.");
+    }
+
     // --- 6. Unknowns (Remote / Downstream Boundaries — always explicit) ---
     unknown.push(
       {
@@ -1235,6 +1244,7 @@
       scanStatus,
       cookiesModel,
       networkModel,
+      storageModel,
       fingerprintingList,
       permissionsList,
       visibilityModel,
@@ -1246,6 +1256,13 @@
       unavailableCount: unavailable.length
     });
 
+    const defaultRevision =
+      typeof globalThis !== "undefined" &&
+      globalThis.MITCH_BUILD_META &&
+      typeof globalThis.MITCH_BUILD_META.sourceRevision === "string"
+        ? globalThis.MITCH_BUILD_META.sourceRevision
+        : "working-tree";
+
     const baseReceipt = {
       schema: RECEIPT_SCHEMA_V1,
       receiptId,
@@ -1253,7 +1270,7 @@
       collector: {
         name: COLLECTOR_NAME,
         version: sanitizePlainText(input.collectorVersion, COLLECTOR_VERSION, 32),
-        revision: sanitizePlainText(input.collectorRevision, "working-tree", 64),
+        revision: sanitizePlainText(input.collectorRevision, defaultRevision, 64),
         ruleSetVersion: RULE_SET_VERSION,
         scoringRuleVersion: SCORING_RULE_VERSION,
         mode,
@@ -1296,34 +1313,57 @@
   }
 
   /**
-   * Compute Surface Score with strict unavailable-vs-zero semantics:
+   * Compute Surface Score with strict unavailable-vs-zero and non-improvement semantics (#14):
    *   - Unsupported or error scans return value: null ("Unavailable"), NEVER 0.
-   *   - Unavailable input channels have component value `null` (never 0) and reduce coverage %.
+   *   - Limited or preview scans return value: null and expose [observedMinimum, unverifiedMaximum]
+   *     so missing evidence never collapses into a lower/reassuring single score.
    *   - Score never emits claims about data collection, storage, sharing, sale, safety, or compliance.
    */
   function computeSurfaceScore(ctx) {
+    const unavailablePermCount = ctx.permissionsAvailable
+      ? ctx.permissionsList.filter((p) => p.state === "Unavailable").length
+      : PERMISSION_SURFACES.length;
+
+    const storageFullyAvailable = Boolean(
+      ctx.contentAvailable &&
+      ctx.storageModel &&
+      ctx.storageModel.localStorage &&
+      ctx.storageModel.localStorage.available &&
+      ctx.storageModel.sessionStorage &&
+      ctx.storageModel.sessionStorage.available
+    );
+
     const sourceChecks = [
       { key: "cookies", ok: ctx.cookiesModel.available },
       { key: "network", ok: ctx.networkModel.available },
-      { key: "storage", ok: ctx.contentAvailable },
+      { key: "storage", ok: storageFullyAvailable },
       { key: "fingerprinting", ok: ctx.contentAvailable },
       { key: "visibility", ok: ctx.contentAvailable },
-      { key: "permissions", ok: ctx.permissionsAvailable }
+      { key: "permissions", ok: ctx.permissionsAvailable && unavailablePermCount === 0 }
     ];
     const checkedSources = sourceChecks.filter((s) => s.ok).length;
     const totalSources = sourceChecks.length;
     const unavailableSources = sourceChecks.filter((s) => !s.ok).map((s) => s.key);
+    const hasAnyEvidenceChannel =
+      ctx.cookiesModel.available ||
+      ctx.networkModel.available ||
+      ctx.contentAvailable ||
+      (ctx.permissionsAvailable && unavailablePermCount < PERMISSION_SURFACES.length);
+
     const coveragePercent =
-      ctx.scanStatus === "unsupported" || ctx.scanStatus === "error"
+      ctx.scanStatus === "unsupported" || ctx.scanStatus === "error" || !hasAnyEvidenceChannel
         ? 0
         : Math.round((checkedSources / totalSources) * 100);
 
-    if (ctx.scanStatus === "unsupported" || ctx.scanStatus === "error" || checkedSources === 0) {
+    if (ctx.scanStatus === "unsupported" || ctx.scanStatus === "error" || !hasAnyEvidenceChannel) {
       return {
         value: null,
+        observedMinimum: null,
+        unverifiedMaximum: null,
         category: "Unavailable",
         semantics: "informational-surface-summary",
         scoringRuleVersion: SCORING_RULE_VERSION,
+        ruleSetVersion: RULE_SET_VERSION,
         nonVerdictNotice:
           "Surface Score summarizes observed browser-visible surfaces only. Low score does not mean safe; unavailable inputs are never counted as zero.",
         dimensions: {
@@ -1336,6 +1376,8 @@
           },
           technicalExposure: {
             value: null,
+            observedMinimum: null,
+            unverifiedMaximum: null,
             maxValue: 100,
             category: "Unavailable"
           },
@@ -1361,50 +1403,98 @@
     const cookiesPts = ctx.cookiesModel.available
       ? Math.min(30, ctx.cookiesModel.total * 2)
       : null;
+    const cookiesMin = cookiesPts === null ? 0 : cookiesPts;
+    const cookiesMissingMax = cookiesPts === null ? 30 : 0;
 
     const thirdPartyReqPts = ctx.networkModel.available
       ? Math.min(17, ctx.networkModel.thirdPartyRequestCount * 3)
       : null;
+    const thirdPartyReqMin = thirdPartyReqPts === null ? 0 : thirdPartyReqPts;
+    const thirdPartyReqMissingMax = thirdPartyReqPts === null ? 17 : 0;
 
     const trackerPts = ctx.networkModel.available
       ? Math.min(8, ctx.networkModel.knownTrackerDomainCount * 4)
       : null;
+    const trackerMin = trackerPts === null ? 0 : trackerPts;
+    const trackerMissingMax = trackerPts === null ? 8 : 0;
 
     const fpCount = ctx.contentAvailable
       ? ctx.fingerprintingList.filter((f) => f.observed === true).length
       : null;
     const fpPts = fpCount !== null ? Math.min(30, fpCount * 10) : null;
+    const fpMin = fpPts === null ? 0 : fpPts;
+    const fpMissingMax = fpPts === null ? 30 : 0;
 
-    const grantedCount = ctx.permissionsAvailable
+    const knownGranted = ctx.permissionsAvailable
       ? ctx.permissionsList.filter((p) => p.state === "Granted").length
-      : null;
-    const promptCount = ctx.permissionsAvailable
+      : 0;
+    const knownPrompt = ctx.permissionsAvailable
       ? ctx.permissionsList.filter((p) => p.state === "Prompt").length
-      : null;
+      : 0;
 
-    const grantedPts = grantedCount !== null ? Math.min(24, grantedCount * 8) : null;
-    const promptPts = promptCount !== null ? Math.min(10, promptCount * 2) : null;
+    const permsComplete = ctx.permissionsAvailable && unavailablePermCount === 0;
+    const grantedPts = permsComplete ? Math.min(24, knownGranted * 8) : null;
+    const promptPts = permsComplete ? Math.min(10, knownPrompt * 2) : null;
 
-    const numericSum = [cookiesPts, thirdPartyReqPts, trackerPts, fpPts, grantedPts, promptPts]
-      .filter((v) => v !== null)
-      .reduce((acc, v) => acc + v, 0);
+    const permMin = Math.min(24, knownGranted * 8) + Math.min(10, knownPrompt * 2);
+    let permMaxTotal = permMin;
+    for (let dg = 0; dg <= unavailablePermCount; dg += 1) {
+      const dp = unavailablePermCount - dg;
+      const candidate =
+        Math.min(24, (knownGranted + dg) * 8) +
+        Math.min(10, (knownPrompt + dp) * 2);
+      if (candidate > permMaxTotal) {
+        permMaxTotal = candidate;
+      }
+    }
 
-    const value = Math.min(100, Math.round(numericSum));
-    const baseCategory = scoreCategory(value);
-    const category = coveragePercent < 100 ? `${baseCategory} (Partial Coverage)` : baseCategory;
+    const observedMinimum = Math.min(
+      100,
+      Math.round(cookiesMin + thirdPartyReqMin + trackerMin + fpMin + permMin)
+    );
+    const rawUnverifiedMax =
+      cookiesMin +
+      cookiesMissingMax +
+      thirdPartyReqMin +
+      thirdPartyReqMissingMax +
+      trackerMin +
+      trackerMissingMax +
+      fpMin +
+      fpMissingMax +
+      permMaxTotal;
+
+    const unverifiedMaximum =
+      ctx.scanStatus === "preview"
+        ? 100
+        : Math.min(100, Math.round(Math.max(observedMinimum, rawUnverifiedMax)));
+
+    const isComplete = ctx.scanStatus === "complete" && unavailableSources.length === 0;
+    const value = isComplete ? observedMinimum : null;
+
+    let category;
+    if (ctx.scanStatus === "preview") {
+      category = "Standalone Preview (Not a Live Extension Scan)";
+    } else if (!isComplete) {
+      category = "Incomplete Scan (Limited Coverage)";
+    } else {
+      category = scoreCategory(value);
+    }
 
     const qualitySummary =
       ctx.scanStatus === "preview"
         ? "preview-mock-data"
-        : coveragePercent === 100
+        : isComplete
           ? "complete-browser-window-observation"
           : "partial-observation-with-unavailable-sources";
 
     return {
       value,
+      observedMinimum,
+      unverifiedMaximum,
       category,
       semantics: "informational-surface-summary",
       scoringRuleVersion: SCORING_RULE_VERSION,
+      ruleSetVersion: RULE_SET_VERSION,
       nonVerdictNotice:
         "Surface Score summarizes observed browser-visible surfaces only. Low score does not mean safe; unavailable inputs are never counted as zero.",
       dimensions: {
@@ -1417,6 +1507,8 @@
         },
         technicalExposure: {
           value,
+          observedMinimum,
+          unverifiedMaximum,
           maxValue: 100,
           category
         },
@@ -1481,10 +1573,40 @@
 
     const esc = escapeMarkdownInline;
     const code = sanitizeCodeSpan;
-    const scoreText =
-      receipt.surfaceScore.value === null
-        ? `Unavailable (${esc(receipt.collector.scanStatus)})`
-        : `${receipt.surfaceScore.value}/100 — ${esc(receipt.surfaceScore.category)}`;
+    const exp = receipt.surfaceScore.dimensions.technicalExposure;
+
+    let scoreText;
+    if (receipt.surfaceScore.value !== null) {
+      scoreText = `${receipt.surfaceScore.value}/100 — ${esc(receipt.surfaceScore.category)}`;
+    } else if (
+      receipt.collector.scanStatus === "limited" &&
+      receipt.surfaceScore.observedMinimum !== null &&
+      receipt.surfaceScore.unverifiedMaximum !== null
+    ) {
+      scoreText = `Incomplete (${receipt.surfaceScore.observedMinimum}–${receipt.surfaceScore.unverifiedMaximum}/100 unverified range) — ${esc(receipt.surfaceScore.category)}`;
+    } else if (
+      receipt.collector.scanStatus === "preview" &&
+      receipt.surfaceScore.observedMinimum !== null
+    ) {
+      scoreText = `Preview Only (local preview floor ${receipt.surfaceScore.observedMinimum}/100; not a live extension scan)`;
+    } else {
+      scoreText = `Unavailable (${esc(receipt.collector.scanStatus)})`;
+    }
+
+    let exposureText;
+    if (exp.value !== null) {
+      exposureText = `${exp.value}/100 (${esc(exp.category)})`;
+    } else if (
+      receipt.collector.scanStatus === "limited" &&
+      exp.observedMinimum !== null &&
+      exp.unverifiedMaximum !== null
+    ) {
+      exposureText = `${exp.observedMinimum}–${exp.unverifiedMaximum}/100 unverified range (${esc(exp.category)})`;
+    } else if (receipt.collector.scanStatus === "preview") {
+      exposureText = `Preview Only (${esc(exp.category)})`;
+    } else {
+      exposureText = `Unavailable (${esc(exp.category)})`;
+    }
 
     const cov = receipt.surfaceScore.dimensions.observationCoverage;
     const qual = receipt.surfaceScore.dimensions.evidenceQuality;
@@ -1521,15 +1643,15 @@
       `- **Receipt ID:** \`${code(receipt.receiptId)}\``,
       `- **Captured At:** ${esc(receipt.capturedAt)}`,
       `- **Collector:** ${esc(receipt.collector.name)} \`v${code(receipt.collector.version)}\` (revision: \`${code(receipt.collector.revision)}\`, rules: \`${code(receipt.collector.ruleSetVersion)}\`, mode: \`${code(receipt.collector.mode)}\`)`,
-      `- **Scan Status:** \`${code(receipt.collector.scanStatus)}\``,
+      `- **Scan Status:** \`${code(receipt.collector.scanStatus)}\` (window: \`${receipt.collector.observationWindowMs}ms\`)`,
       `- **Page Origin:** \`${code(receipt.page.origin)}\` (${esc(receipt.page.protocol)})`,
       `- **Page Title (untrusted page metadata):** ${esc(receipt.page.title)}`,
       `- **Full URL Included:** \`false\` (query and fragment redacted)`,
       ``,
       `## Surface Score & Dimensions`,
-      `- **Surface Score:** **${scoreText}** (rule: \`${code(receipt.surfaceScore.scoringRuleVersion)}\`)`,
+      `- **Surface Score:** **${scoreText}** (scoring: \`${code(receipt.surfaceScore.scoringRuleVersion)}\`, rules: \`${code(receipt.collector.ruleSetVersion)}\`)`,
       `- **Observation Coverage:** ${cov.percent}% (${cov.checkedSources}/${cov.totalSources} sources available${cov.unavailableSources.length > 0 ? `; unavailable: ${cov.unavailableSources.map(esc).join(", ")}` : ""})`,
-      `- **Technical Exposure:** ${receipt.surfaceScore.dimensions.technicalExposure.value === null ? "Unavailable" : `${receipt.surfaceScore.dimensions.technicalExposure.value}/100`} (${esc(receipt.surfaceScore.dimensions.technicalExposure.category)})`,
+      `- **Technical Exposure:** ${exposureText}`,
       `- **Evidence Quality:** ${qual.directObservedCount} observed, ${qual.declaredCount} declared, ${qual.potentialCount} potential, ${qual.unavailableCount} unavailable (\`${code(qual.summary)}\`)`,
       `- **Score Components:** cookies=${formatComponent(comp.cookies)}, thirdPartyRequests=${formatComponent(comp.thirdPartyRequests)}, knownTrackerDomains=${formatComponent(comp.knownTrackerDomains)}, fingerprintingCalls=${formatComponent(comp.fingerprintingCalls)}, grantedPermissions=${formatComponent(comp.grantedPermissions)}, promptPermissions=${formatComponent(comp.promptPermissions)}`,
       ``,

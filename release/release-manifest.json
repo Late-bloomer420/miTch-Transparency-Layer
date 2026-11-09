@@ -1,0 +1,104 @@
+{
+  "schema": "askmi.transparency.release-manifest.v1",
+  "packageName": "mitch-transparency-layer",
+  "status": "experimental-local-only",
+  "manifestVersion": "0.3.0",
+  "sourceRevision": "v0.3.0+tree.86bad4d41ad4",
+  "sourceTreeSha256": "86bad4d41ad43b72db841786bff448810ee9821f20a2803e980cea77e1f2920c",
+  "ruleSetVersion": "visibility-rules-v1",
+  "scoringRuleVersion": "surface-score-v1",
+  "privacyPolicy": {
+    "markdownPath": "PRIVACY_POLICY.md",
+    "markdownSha256": "e4302e3bf6c2af0fe2aac4c4e5c2b995a233c65f710c3a886a03e52d4e6c3738",
+    "docsHtmlPath": "docs/index.html",
+    "docsHtmlSha256": "2da1adb2fbbef62e6d20f8b5b44aeb88d77267de6379d4c380507e8cbfe6a9a0",
+    "parityVerified": true
+  },
+  "archive": {
+    "path": "release/mitch-transparency-layer-v0.3.0.zip",
+    "format": "pkzip-store-deterministic",
+    "bytes": 164824,
+    "sha256": "4eec1467c775c042286d535c63f2582e04666526e447128bd570aa0c2f4b5a6d"
+  },
+  "commands": {
+    "test": "node --test test/*.test.mjs",
+    "verifyRelease": "node scripts/build-release.mjs --verify"
+  },
+  "packagedFiles": [
+    {
+      "path": "PRIVACY_POLICY.md",
+      "bytes": 1963,
+      "sha256": "e4302e3bf6c2af0fe2aac4c4e5c2b995a233c65f710c3a886a03e52d4e6c3738"
+    },
+    {
+      "path": "background.js",
+      "bytes": 6889,
+      "sha256": "aaefe220c67a3abecad39c507c35d4859f2ff167f0656b45621316f6114ca428"
+    },
+    {
+      "path": "build-meta.js",
+      "bytes": 619,
+      "sha256": "c7944db0d97be28c517f14377ee029d330bea0b27cf57706c75bb3dbd92b1738"
+    },
+    {
+      "path": "content.js",
+      "bytes": 6876,
+      "sha256": "a9ee3fe5984f861d0f4584e29296f7d66b37b3e08dcd552a08f801777c050c1d"
+    },
+    {
+      "path": "icons/icon-128.png",
+      "bytes": 5178,
+      "sha256": "495e89d0cd17d7aa9207a42fac86f5c0b7658d1a845ec7eb8379c2fe96f7ddf8"
+    },
+    {
+      "path": "icons/icon-16.png",
+      "bytes": 724,
+      "sha256": "2fa43ea10f4668ee7fab3ffd31a4f8f3cfbfcc07a3c702baed774cbd39b2cdd3"
+    },
+    {
+      "path": "icons/icon-32.png",
+      "bytes": 1322,
+      "sha256": "68e10fdc4c812752611170ba9ae38fccb1c99f2aa82de218054143e8106c02f9"
+    },
+    {
+      "path": "icons/icon-48.png",
+      "bytes": 1824,
+      "sha256": "8f627a9f331ebcf3fa416c1e595d730288a83e5ace488728fb67a3c01adaeead"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1350,
+      "sha256": "0d3416bc101134d4538f5cb4a4c6fd472ded113b4d123fb7b9f5976a39a38abd"
+    },
+    {
+      "path": "page-observer.js",
+      "bytes": 3662,
+      "sha256": "07c47732b1ac7bbd3b82d95ce793de511dcd1857b1b0810e90b34eda4ba1a08f"
+    },
+    {
+      "path": "popup.css",
+      "bytes": 9484,
+      "sha256": "bf01335f887030f6faed1119c49a207a06b9c12cf07fe650e549706ff88c070f"
+    },
+    {
+      "path": "popup.html",
+      "bytes": 8274,
+      "sha256": "e610d2827ac4d1f4d5a8ded9c9ad9e856ce579f2f11510913971189c0f07fb12"
+    },
+    {
+      "path": "popup.js",
+      "bytes": 29614,
+      "sha256": "51d386f79be4786d871e2d8535a05f7d09fa165b94602e849f2dfbfdd66c2de9"
+    },
+    {
+      "path": "proof-bridge.js",
+      "bytes": 15271,
+      "sha256": "a47afa58f393f22382f651a267f6741be91cf4b3d5f9f0d1e64476fa2c4ffce3"
+    },
+    {
+      "path": "surface-receipt.js",
+      "bytes": 70190,
+      "sha256": "debf4001160b1eca9738ba46fa3e772d6f7b38b085a61ac35cecf1a5a05a9ca7"
+    }
+  ]
+}
