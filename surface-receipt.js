@@ -625,7 +625,14 @@
       : [];
 
     const observed = [];
-    const declared = normalizeDeclarations(input.declarations);
+    const rawDeclList = Array.isArray(input.declarations) ? [...input.declarations] : [];
+    if (input.useOfflineTosdr === true) {
+      const st = getStandardsMapping();
+      if (st && typeof st.lookupOfflineTosdrDeclarations === "function") {
+        rawDeclList.push(...st.lookupOfflineTosdrDeclarations(page.domain));
+      }
+    }
+    const declared = normalizeDeclarations(rawDeclList);
     const potential = [];
     const unknown = [];
     const unavailable = [];
@@ -1082,12 +1089,66 @@
       });
     }
 
+    if (rawPrivacySignals && rawPrivacySignals.highEntropyClientHintsObserved === true) {
+      observed.push({
+        id: "fingerprinting.client-hints-high-entropy.call",
+        evidenceState: "observed",
+        summary: "NavigatorUAData.getHighEntropyValues() Client Hints call observed during this scan",
+        source: "main-world-observer",
+        confidence: "high",
+        bounded: {
+          observed: "At least one call to navigator.userAgentData.getHighEntropyValues() was observed in the page MAIN world.",
+          declaredOrPossible: "Queries detailed platform, architecture, model, or full browser version hints beyond standard User-Agent reduction.",
+          notVerified: "Whether the high-entropy client hints were combined into a device fingerprint or sent off-device was not verified.",
+          unknown: "Server-side device recognition and profile persistence remain unknown."
+        }
+      });
+    }
+
+    if (rawPrivacySignals && rawPrivacySignals.storageEstimateObserved === true) {
+      observed.push({
+        id: "fingerprinting.storage-quota-estimate.call",
+        evidenceState: "observed",
+        summary: "StorageManager.estimate() quota probe observed during this scan",
+        source: "main-world-observer",
+        confidence: "medium",
+        bounded: {
+          observed: "At least one call to navigator.storage.estimate() was observed in the page MAIN world.",
+          declaredOrPossible: "Can check available disk quota for offline caching or probe for incognito/private browsing storage limits.",
+          notVerified: "Whether the quota estimate was used for legitimate storage management or mode detection was not verified.",
+          unknown: "Server-side logging or behavioral branching remains unknown."
+        }
+      });
+    }
+
+    if (
+      rawPrivacySignals &&
+      rawPrivacySignals.gpcEnabled === true &&
+      networkModel.available &&
+      networkModel.knownTrackerDomainCount > 0
+    ) {
+      observed.push({
+        id: "aqdr.gpc.tracker-contact-discrepancy",
+        evidenceState: "observed",
+        summary: `AQDR Boundary Check: Sec-GPC: 1 is active while ${networkModel.knownTrackerDomainCount} analytics/marketing tracker domain(s) were contacted`,
+        source: "aqdr-rule-engine",
+        confidence: "high",
+        bounded: {
+          observed: `navigator.globalPrivacyControl is true, and ${networkModel.knownTrackerDomainCount} known tracker domain(s) were contacted during this scan.`,
+          declaredOrPossible: "Indicates a technical discrepancy between the user's Sec-GPC: 1 preference signal and outbound third-party tracker requests.",
+          notVerified: "GPC legal bindingness depends on jurisdiction, and whether contacted servers suppress downstream profiling when Sec-GPC: 1 is present was not verified.",
+          unknown: "Remote server honouring of Sec-GPC: 1 cannot be determined from browser observation."
+        }
+      });
+    }
+
     const standardsHelper = getStandardsMapping();
     const standardsSummary = standardsHelper
       ? standardsHelper.buildStandardsSummary({
           findings: visFindings,
           domains: networkModel.domains,
-          privacySignals: rawPrivacySignals
+          privacySignals: rawPrivacySignals,
+          fingerprinting: fingerprintingList
         })
       : null;
 

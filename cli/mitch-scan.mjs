@@ -138,6 +138,7 @@ export function scanHtmlDocument(htmlText, options = {}) {
     collectionMode: "on-demand",
     url: parsedOrigin.href,
     title,
+    useOfflineTosdr: Boolean(options.useOfflineTosdr),
     cookies: { available: false, reason: "cli-static-html-no-cookie-jar" },
     content: {
       available: true,
@@ -284,6 +285,39 @@ if (isCli) {
       process.exit(0);
     }
 
+    if (cmd === "analyze-html") {
+      const htmlPath = positional[1] || flags["html-file"];
+      if (!htmlPath) {
+        throw new Error("Usage: mitch-scan.mjs analyze-html <file.html> [--origin <https://...>] [--with-tosdr] [--format json|markdown] [--out <file>]");
+      }
+      const htmlText = fs.readFileSync(path.resolve(htmlPath), "utf8");
+      const receipt = scanHtmlDocument(htmlText, {
+        origin: flags.origin,
+        useOfflineTosdr: Boolean(flags["with-tosdr"])
+      });
+      const check = validateSurfaceReceipt(receipt);
+      if (!check.valid) {
+        throw new Error(`Generated receipt failed validation: ${check.errors.join("; ")}`);
+      }
+      const fmt = flags.format === "markdown" ? "markdown" : "json";
+      const outText =
+        fmt === "markdown" ? serializeReceiptMarkdown(receipt) : serializeReceiptJson(receipt);
+      writeOrPrint(outText, flags.out);
+      process.exit(0);
+    }
+
+    if (cmd === "inspect") {
+      const target = positional[1];
+      if (!target) throw new Error("Usage: mitch-scan.mjs inspect <receipt.json>");
+      const raw = JSON.parse(fs.readFileSync(path.resolve(target), "utf8"));
+      const check = validateSurfaceReceipt(raw);
+      if (!check.valid) {
+        throw new Error(`Invalid receipt (${target}): ${check.errors.join("; ")}`);
+      }
+      writeOrPrint(serializeReceiptMarkdown(raw), flags.out);
+      process.exit(0);
+    }
+
     if (cmd === "scan") {
       let receipt;
       if (flags.fixture) {
@@ -294,7 +328,10 @@ if (isCli) {
         receipt = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
       } else if (flags["html-file"]) {
         const htmlText = fs.readFileSync(path.resolve(flags["html-file"]), "utf8");
-        receipt = scanHtmlDocument(htmlText, { origin: flags.origin });
+        receipt = scanHtmlDocument(htmlText, {
+          origin: flags.origin,
+          useOfflineTosdr: Boolean(flags["with-tosdr"])
+        });
       } else if (flags.url) {
         receipt = runHeadlessDomDump(flags.url, flags["browser-bin"]);
       } else {
@@ -313,7 +350,7 @@ if (isCli) {
       process.exit(0);
     }
 
-    throw new Error("Unknown command. Supported commands: validate, diff, scan");
+    throw new Error("Unknown command. Supported commands: validate, inspect, diff, scan, analyze-html");
   } catch (err) {
     console.error(`[mitch-scan] ERROR: ${err.message}`);
     process.exit(1);

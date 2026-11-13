@@ -105,3 +105,10 @@ node scripts/build-release.mjs --verify
 ## Privacy Policy
 
 The privacy policy is available in [PRIVACY_POLICY.md](PRIVACY_POLICY.md) and on GitHub Pages.
+
+
+## Blind Provider & Convener Architecture ("Convener statt Autoritaet")
+
+The Transparency Layer operates as a **Blind Provider & Neutral Convener**:
+- **Structurally Blind to User Content:** Never reads typed form values, cookie values, or Web Storage contents; strips URL query/fragment tokens; enforces `connect-src 'none'`; and uses URL `#hash` fragments for local wallet handoffs.
+- **Rule-Based Convener (AQDR Art. 9):** Evaluates open standards (**W3C DPV v2.0**, **ISO/IEC TS 27560:2023**, **Sec-GPC: 1**, **W3C Digital Credentials API**, and offline **ToS;DR CC BY-SA 3.0** declarations in `rules/known-surfaces.v1.json`) and flags signal-vs-surface discrepancies locally without inspecting personal data or claiming central authority.
