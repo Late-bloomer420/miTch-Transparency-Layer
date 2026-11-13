@@ -203,7 +203,40 @@
       "welt": 0
     },
     "findings": [],
-    "proofSuggestion": null
+    "proofSuggestion": null,
+    "standards": {
+      "dpv": {
+        "vocabulary": "W3C Data Privacy Vocabulary (DPV)",
+        "version": "2.0",
+        "uri": "https://w3id.org/dpv#",
+        "status": "w3c-community-group-report",
+        "normativeW3cStandard": false,
+        "note": "DPV is a W3C Data Privacy Vocabularies and Controls Community Group report (not a normative W3C Recommendation). Used here strictly as a descriptive taxonomy for observed browser surface categories.",
+        "observedFieldDataCategories": [],
+        "unverifiedThirdPartyPurposes": []
+      },
+      "iso27560": {
+        "specification": "ISO/IEC TS 27560:2023",
+        "status": "iso-technical-specification",
+        "role": "structural-reference-for-notice-and-receipt-records",
+        "note": "Provides structural alignment for receipt provenance, notice references, and evidence states without claiming legal consent validity."
+      },
+      "gpc": {
+        "specification": "W3C Global Privacy Control (GPC)",
+        "status": "w3c-working-draft",
+        "draftDate": "2026-09-24",
+        "legallyBindingByItself": false,
+        "note": "GPC (Sec-GPC: 1 / navigator.globalPrivacyControl) is a technical user preference signal. It is not legally binding by itself; legal obligations depend on applicable jurisdiction (such as CCPA regulations), and remote server compliance cannot be verified by this browser extension.",
+        "navigatorGlobalPrivacyControl": null
+      },
+      "digitalCredentialsApi": {
+        "specification": "W3C FedID Digital Credentials API",
+        "status": "w3c-working-draft",
+        "note": "Allows websites to request selective verifiable credential presentations from a registered wallet provider via navigator.credentials.get({ digital }).",
+        "apiAvailableInBrowser": null,
+        "invocationObserved": false
+      }
+    }
   },
   "permissions": [
     {
@@ -290,7 +323,7 @@
   "integrity": {
     "normalizationVersion": "1",
     "contentHashAlgorithm": "sha-256",
-    "contentHash": "2b361829a8b9bf7d8de8dda16e3f1f686fd472edf5d0347a451b06abc2a21053",
+    "contentHash": "88ccf587d73271f478e130c6079b8e301bb205ba0b2fd2f76efa3298b307c0dd",
     "signature": null
   }
 }

@@ -25,7 +25,7 @@
     ON_DEMAND: "on-demand"
   });
 
-  const VALID_FP_SURFACES = new Set(["canvas", "webgl", "audio", "webrtc"]);
+  const VALID_FP_SURFACES = new Set(["canvas", "webgl", "audio", "webrtc", "digitalCredentials"]);
   const MUTATION_THROTTLE_MS = 600;
   const PUSH_DEBOUNCE_MS = 250;
 
@@ -115,7 +115,8 @@
       canvas: false,
       webgl: false,
       audio: false,
-      webrtc: false
+      webrtc: false,
+      digitalCredentials: false
     };
 
     let pushTimer = null;
@@ -436,6 +437,19 @@
       }
     }
 
+    function collectPrivacySignals() {
+      const nav = (win && win.navigator) || (typeof navigator !== "undefined" ? navigator : {});
+      return {
+        gpcEnabled: nav.globalPrivacyControl === true,
+        doNotTrack: nav.doNotTrack === "1",
+        digitalCredentialsApiAvailable: Boolean(
+          (win && win.DigitalCredential) ||
+            (nav.credentials && typeof nav.credentials.get === "function")
+        ),
+        digitalCredentialsCallObserved: Boolean(activeFingerprinting.digitalCredentials)
+      };
+    }
+
     function collectAllSurfaces() {
       const nav = (win && win.navigator) || (typeof navigator !== "undefined" ? navigator : {});
       return {
@@ -448,6 +462,7 @@
         fingerprinting: collectFingerprintingSurfaces(),
         csp: collectCspSurface(),
         visibilityLayer: collectVisibilityLayer(),
+        privacySignals: collectPrivacySignals(),
         requests: collectVisibleRequests(),
         screen: collectScreen(),
         language: nav.language || "Unknown",

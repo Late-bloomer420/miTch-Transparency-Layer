@@ -28,6 +28,7 @@ jobs:
           node --check content.js
           node --check page-observer.js
           node --check domain-boundary.js
+          node --check standards-mapping.js
           node --check proof-bridge.js
           node --check surface-receipt.js
           node --check i18n.js

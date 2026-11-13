@@ -9,8 +9,8 @@
   "use strict";
   return Object.freeze({
     collectorVersion: "0.3.0",
-    sourceRevision: "v0.3.0+tree.ae04293aee26",
-    sourceTreeSha256: "ae04293aee26327cdccf6af4616d6c7baa6fdbb128bcf7acc3fae111e424a59a",
+    sourceRevision: "v0.3.0+tree.dce952988822",
+    sourceTreeSha256: "dce952988822ee6a3d3a6f0c43f1bba4e0073574548c7b8ebc034386ff05e8c0",
     ruleSetVersion: "visibility-rules-v1",
     scoringRuleVersion: "surface-score-v1"
   });

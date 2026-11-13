@@ -363,6 +363,12 @@
             "object",
             "null"
           ]
+        },
+        "standards": {
+          "type": [
+            "object",
+            "null"
+          ]
         }
       }
     },
