@@ -239,6 +239,26 @@
         });
       }
 
+      // 5b. User-Agent Client Hints high-entropy hook (navigator.userAgentData.getHighEntropyValues)
+      const uaDataProto =
+        (targetWin.NavigatorUAData && targetWin.NavigatorUAData.prototype) ||
+        (targetWin.navigator &&
+          targetWin.navigator.userAgentData &&
+          Object.getPrototypeOf(targetWin.navigator.userAgentData));
+      if (uaDataProto) {
+        wrapMethod(uaDataProto, "getHighEntropyValues", "clientHints");
+      }
+
+      // 5c. StorageManager quota probing hook (navigator.storage.estimate)
+      const storageMgrProto =
+        (targetWin.StorageManager && targetWin.StorageManager.prototype) ||
+        (targetWin.navigator &&
+          targetWin.navigator.storage &&
+          Object.getPrototypeOf(targetWin.navigator.storage));
+      if (storageMgrProto) {
+        wrapMethod(storageMgrProto, "estimate", "storageQuota");
+      }
+
       // 6. Same-origin HTMLIFrameElement.prototype.contentWindow getter hook
       if (targetWin.HTMLIFrameElement && targetWin.HTMLIFrameElement.prototype) {
         try {

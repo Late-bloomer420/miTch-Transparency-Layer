@@ -25,7 +25,7 @@
     ON_DEMAND: "on-demand"
   });
 
-  const VALID_FP_SURFACES = new Set(["canvas", "webgl", "audio", "webrtc", "digitalCredentials"]);
+  const VALID_FP_SURFACES = new Set(["canvas", "webgl", "audio", "webrtc", "digitalCredentials", "clientHints", "storageQuota"]);
   const MUTATION_THROTTLE_MS = 600;
   const PUSH_DEBOUNCE_MS = 250;
 
@@ -116,7 +116,9 @@
       webgl: false,
       audio: false,
       webrtc: false,
-      digitalCredentials: false
+      digitalCredentials: false,
+      clientHints: false,
+      storageQuota: false
     };
 
     let pushTimer = null;
@@ -446,7 +448,9 @@
           (win && win.DigitalCredential) ||
             (nav.credentials && typeof nav.credentials.get === "function")
         ),
-        digitalCredentialsCallObserved: Boolean(activeFingerprinting.digitalCredentials)
+        digitalCredentialsCallObserved: Boolean(activeFingerprinting.digitalCredentials),
+        highEntropyClientHintsObserved: Boolean(activeFingerprinting.clientHints),
+        storageEstimateObserved: Boolean(activeFingerprinting.storageQuota)
       };
     }
 

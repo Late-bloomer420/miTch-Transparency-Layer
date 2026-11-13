@@ -1,0 +1,177 @@
+{
+  "schema": "askmi.transparency.known-surfaces.v1",
+  "ruleSetVersion": "visibility-rules-v1",
+  "updatedAt": "2026-11-13T00:00:00.000Z",
+  "licenses": {
+    "rulepackStructureAndTrackerRules": "Apache-2.0",
+    "curatedTosdrDeclarations": "CC BY-SA 3.0 (Terms of Service; Didn't Read — https://tosdr.org)"
+  },
+  "blindConvenerNote": "Evaluated strictly offline on the user's device (connect-src 'none'). No domain lookups or browsing telemetry are ever transmitted.",
+  "trackerCategories": [
+    {
+      "classification": "Analytics Tracker",
+      "dpvRecipient": "dpv:ThirdParty",
+      "dpvPotentialPurpose": "dpv:ServiceOptimization",
+      "dpvProcessing": "dpv:Observe",
+      "domains": [
+        "google-analytics.com",
+        "googletagmanager.com",
+        "analytics.google.com"
+      ]
+    },
+    {
+      "classification": "Ad-Tech Tracker",
+      "dpvRecipient": "dpv:ThirdParty",
+      "dpvPotentialPurpose": "dpv:Marketing",
+      "dpvProcessing": "dpv:Observe",
+      "domains": [
+        "doubleclick.net",
+        "googlesyndication.com",
+        "googleadservices.com",
+        "adservice.google.com"
+      ]
+    },
+    {
+      "classification": "Social / Ad Tracker",
+      "dpvRecipient": "dpv:ThirdParty",
+      "dpvPotentialPurpose": "dpv:Marketing",
+      "dpvProcessing": "dpv:Observe",
+      "domains": [
+        "facebook.net",
+        "facebook.com",
+        "fbcdn.net"
+      ]
+    },
+    {
+      "classification": "Session Replay",
+      "dpvRecipient": "dpv:ThirdParty",
+      "dpvPotentialPurpose": "dpv:ServiceOptimization",
+      "dpvProcessing": "dpv:Observe",
+      "domains": [
+        "clarity.ms",
+        "hotjar.com",
+        "fullstory.com",
+        "mouseflow.com",
+        "logrocket.com"
+      ]
+    },
+    {
+      "classification": "Product Telemetry",
+      "dpvRecipient": "dpv:ThirdParty",
+      "dpvPotentialPurpose": "dpv:ServiceOptimization",
+      "dpvProcessing": "dpv:Observe",
+      "domains": [
+        "mixpanel.com",
+        "segment.io",
+        "segment.com",
+        "amplitude.com",
+        "posthog.com",
+        "plausible.io"
+      ]
+    },
+    {
+      "classification": "Ad Exchange",
+      "dpvRecipient": "dpv:ThirdParty",
+      "dpvPotentialPurpose": "dpv:Marketing",
+      "dpvProcessing": "dpv:Observe",
+      "domains": [
+        "criteo.com",
+        "taboola.com",
+        "outbrain.com",
+        "adnxs.com",
+        "rubiconproject.com",
+        "pubmatic.com"
+      ]
+    },
+    {
+      "classification": "Attribution Pixel",
+      "dpvRecipient": "dpv:ThirdParty",
+      "dpvPotentialPurpose": "dpv:Marketing",
+      "dpvProcessing": "dpv:Observe",
+      "domains": [
+        "tiktok.com",
+        "byteoversea.com",
+        "snapchat.com",
+        "sc-static.net",
+        "linkedin.com",
+        "licdn.com",
+        "bat.bing.com"
+      ]
+    },
+    {
+      "classification": "Error / RUM Telemetry",
+      "dpvRecipient": "dpv:ThirdParty",
+      "dpvPotentialPurpose": "dpv:TechnicalServiceProvision",
+      "dpvProcessing": "dpv:Observe",
+      "domains": [
+        "sentry.io",
+        "datadoghq.com",
+        "newrelic.com",
+        "nr-data.net",
+        "bugsnag.com"
+      ]
+    }
+  ],
+  "curatedTosdrDeclarations": {
+    "google.com": [
+      {
+        "tosdr": true,
+        "id": "google_217",
+        "service": "Google",
+        "title": "Service states it may collect and combine activity across integrated services and third-party partners",
+        "sourceUrl": "https://tosdr.org/en/service/217",
+        "retrievedAt": "2026-11-04T00:00:00.000Z"
+      }
+    ],
+    "youtube.com": [
+      {
+        "tosdr": true,
+        "id": "youtube_274",
+        "service": "YouTube",
+        "title": "Service states viewing history and device identifiers may be used for personalized recommendations and advertising",
+        "sourceUrl": "https://tosdr.org/en/service/274",
+        "retrievedAt": "2026-11-04T00:00:00.000Z"
+      }
+    ],
+    "facebook.com": [
+      {
+        "tosdr": true,
+        "id": "facebook_182",
+        "service": "Facebook",
+        "title": "Service states it may receive activity information from third-party websites using its social plugins and pixels",
+        "sourceUrl": "https://tosdr.org/en/service/182",
+        "retrievedAt": "2026-11-04T00:00:00.000Z"
+      }
+    ],
+    "amazon.com": [
+      {
+        "tosdr": true,
+        "id": "amazon_190",
+        "service": "Amazon",
+        "title": "Service states it uses cookies and device identifiers to provide and measure interest-based ads",
+        "sourceUrl": "https://tosdr.org/en/service/190",
+        "retrievedAt": "2026-11-04T00:00:00.000Z"
+      }
+    ],
+    "github.com": [
+      {
+        "tosdr": true,
+        "id": "github_296",
+        "service": "GitHub",
+        "title": "Service states it limits non-essential tracking cookies and publishes transparent privacy documentation",
+        "sourceUrl": "https://tosdr.org/en/service/296",
+        "retrievedAt": "2026-11-04T00:00:00.000Z"
+      }
+    ],
+    "wikipedia.org": [
+      {
+        "tosdr": true,
+        "id": "wikipedia_265",
+        "service": "Wikipedia",
+        "title": "Service states it does not sell personal information or rely on behavioral third-party advertising",
+        "sourceUrl": "https://tosdr.org/en/service/265",
+        "retrievedAt": "2026-11-04T00:00:00.000Z"
+      }
+    ]
+  }
+}

@@ -143,6 +143,8 @@ function applyStaticTranslations(locale = currentLocale) {
     ["labelFirstPartyCookies", "labelFirstPartyCookies"],
     ["labelThirdPartyCookies", "labelThirdPartyCookies"],
     ["storage-title", "storageTitle"],
+    ["convener-signals-title", "convenerTitle"],
+    ["convenerGuardrail", "convenerGuardrail"],
     ["visibility-layer-title", "visibilityTitle"],
     ["visibilityGuardrail", "visibilityGuardrail"],
     ["proofBridgeHeading", "proofBridgeHeading"],
@@ -543,7 +545,8 @@ async function init() {
       content: contentData,
       network: combinedNetwork,
       permissions,
-      observationWindowMs
+      observationWindowMs,
+      useOfflineTosdr: true
     });
 
     renderReceipt(receipt);
@@ -621,6 +624,14 @@ async function initStandalonePreview(collectorVersion, collectorRevision = getCo
         counts: { vulnerable: 0, grundversorgung: 0, welt: 0 },
         findings: [],
         proofSuggestion: null
+      },
+      privacySignals: {
+        gpcEnabled: navigator.globalPrivacyControl === true,
+        doNotTrack: navigator.doNotTrack === "1",
+        digitalCredentialsApiAvailable: Boolean(window.DigitalCredential || (navigator.credentials && typeof navigator.credentials.get === "function")),
+        digitalCredentialsCallObserved: false,
+        highEntropyClientHintsObserved: false,
+        storageEstimateObserved: false
       },
       screen: window.screen ? `${window.screen.width} × ${window.screen.height}` : "Unknown",
       language: navigator.language || "Unknown",
@@ -881,6 +892,7 @@ function renderReceipt(receipt) {
   $("localStorageUsage").textContent = receipt.storage.localStorage.label;
   $("sessionStorageUsage").textContent = receipt.storage.sessionStorage.label;
 
+  renderConvenerAndPrivacySignals(receipt);
   renderVisibilityLayer(receipt.visibility);
   renderThirdPartyDomains(receipt.network);
 
@@ -928,6 +940,108 @@ function renderReceipt(receipt) {
 
   renderScoreSection(receipt);
   renderFiveStateReport(receipt.report);
+}
+
+
+function renderConvenerAndPrivacySignals(receipt) {
+  const listEl = $("privacySignalsList");
+  const badgeEl = $("convenerRoleBadge");
+  const i18n = getI18n();
+  const isDe = currentLocale === "de";
+  if (badgeEl) {
+    badgeEl.textContent = isDe ? "● Blinder Convener" : "● Blind Convener";
+  }
+  if (!listEl) return;
+
+  const standards = receipt && receipt.visibility && receipt.visibility.standards;
+  if (!standards) {
+    renderSignals("privacySignalsList", [
+      {
+        name: isDe ? "Standards & Signal-Prüfung nicht verfügbar" : "Standards & signal check unavailable",
+        state: "Unavailable",
+        stateText: i18n ? i18n.getEvidenceBadge("unavailable", currentLocale).badgeText : "⊘ Unavailable",
+        meta: isDe
+          ? "Keine Standards-Metadaten für diesen Tab verfügbar."
+          : "No standards metadata available for this tab."
+      }
+    ]);
+    return;
+  }
+
+  const gpcActive = standards.gpc && standards.gpc.navigatorGlobalPrivacyControl === true;
+  const dcObserved = standards.digitalCredentialsApi && standards.digitalCredentialsApi.invocationObserved === true;
+  const dcAvailable = standards.digitalCredentialsApi && standards.digitalCredentialsApi.apiAvailableInBrowser === true;
+  const modern = standards.modernSurfaceProbes || {};
+  const modernObserved = Boolean(modern.highEntropyClientHintsObserved || modern.storageEstimateObserved);
+  const contradictions = Array.isArray(standards.aqdrContradictions) ? standards.aqdrContradictions : [];
+
+  const items = [
+    {
+      name: isDe
+        ? "Blinder Provider & Convener (Strukturelle Blindheit)"
+        : "Blind Provider & Convener (Structural Blindness)",
+      state: "Observed",
+      stateText: i18n ? i18n.getEvidenceBadge("observed", currentLocale).badgeText : "● Observed",
+      meta: isDe
+        ? "Formular-/Cookie-/Speicherwerte: nie gelesen · Netzwerk-Egress: blockiert (connect-src 'none') · § 26 TDDDG Neutralität: kein wirtschaftliches Eigeninteresse."
+        : "Form/cookie/storage values: never read · Network egress: blocked (connect-src 'none') · § 26 TDDDG neutrality: zero economic self-interest."
+    },
+    {
+      name: "W3C Global Privacy Control (Sec-GPC: 1)",
+      state: gpcActive ? "Observed" : "Not Observed",
+      stateText: gpcActive
+        ? (i18n ? i18n.getEvidenceBadge("observed", currentLocale).badgeText : "● Active")
+        : (i18n ? i18n.getEvidenceBadge("not_observed", currentLocale).badgeText : "○ Not Enabled"),
+      meta: gpcActive
+        ? (isDe
+            ? "navigator.globalPrivacyControl = true. Technisches Präferenzsignal aktiv (allein nicht rechtsverbindlich; Server-Einhaltung nicht verifiziert)."
+            : "navigator.globalPrivacyControl = true. Technical preference signal active (not legally binding by itself; server adherence not verified).")
+        : (isDe
+            ? "Kein aktives Sec-GPC: 1 Signal im Browser erkannt."
+            : "No active Sec-GPC: 1 signal detected in this browser.")
+    },
+    {
+      name: "W3C FedID Digital Credentials API",
+      state: dcObserved ? "Observed" : "Potential",
+      stateText: dcObserved
+        ? (i18n ? i18n.getEvidenceBadge("observed", currentLocale).badgeText : "● Observed")
+        : (i18n ? i18n.getEvidenceBadge("not_observed", currentLocale).badgeText : "○ Not Observed"),
+      meta: dcObserved
+        ? (isDe
+            ? "Aufruf von navigator.credentials.get({ digital }) beobachtet — Website fragt Wallet-Nachweis direkt an."
+            : "Call to navigator.credentials.get({ digital }) observed — site requested a wallet credential presentation.")
+        : (isDe
+            ? `Kein Digital-Credentials-Aufruf während dieses Scans beobachtet (Browser-API verfügbar: ${dcAvailable ? "ja" : "nein"}).`
+            : `No Digital Credentials invocation observed during this scan (browser API available: ${dcAvailable ? "yes" : "no"}).`)
+    },
+    {
+      name: isDe
+        ? "Moderne High-Entropy-Probes (Client Hints / Storage Quota)"
+        : "Modern High-Entropy Probes (Client Hints / Storage Quota)",
+      state: modernObserved ? "Observed" : "Not Observed",
+      stateText: modernObserved
+        ? (i18n ? i18n.getEvidenceBadge("observed", currentLocale).badgeText : "● Observed")
+        : (i18n ? i18n.getEvidenceBadge("not_observed", currentLocale).badgeText : "○ Not Observed"),
+      meta: modernObserved
+        ? (isDe
+            ? `Beobachtet: ${[modern.highEntropyClientHintsObserved ? "userAgentData.getHighEntropyValues()" : "", modern.storageEstimateObserved ? "navigator.storage.estimate()" : ""].filter(Boolean).join(", ")}.`
+            : `Observed: ${[modern.highEntropyClientHintsObserved ? "userAgentData.getHighEntropyValues()" : "", modern.storageEstimateObserved ? "navigator.storage.estimate()" : ""].filter(Boolean).join(", ")}.`)
+        : (isDe
+            ? "Keine Aufrufe von getHighEntropyValues() oder storage.estimate() in diesem Scan beobachtet."
+            : "No calls to getHighEntropyValues() or storage.estimate() observed during this scan.")
+    }
+  ];
+
+  for (const c of contradictions) {
+    items.push({
+      name: `AQDR Art. 9 · ${c.id}`,
+      state: "Observed",
+      stateText: i18n ? i18n.getEvidenceBadge("observed", currentLocale).badgeText : "● Observed",
+      meta: `${c.summary} (${c.unverifiedBoundary})`
+    });
+  }
+
+  renderSignals("privacySignalsList", items);
 }
 
 function renderVisibilityLayer(visibility) {
@@ -1012,8 +1126,9 @@ function renderVisibilityLayer(visibility) {
             currentLocale
           )
         : null;
+      const dpvTag = item.dpvDataCategory ? ` [${item.dpvDataCategory}]` : "";
       return {
-        name: item.label,
+        name: `${item.label}${dpvTag}`,
         state: item.layer.startsWith("VULNERABLE") ? "Observed" : "Potential",
         stateText: explain ? explain.badge.badgeText : item.layer.split(" ")[0],
         meta: `${item.hint} (DOM metadata only; entered values not read.)`,

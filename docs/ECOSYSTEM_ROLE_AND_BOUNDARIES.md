@@ -166,3 +166,18 @@ All v0.4 programme gates (`G0`–`G4`, issues [#14–#22](https://github.com/Lat
 ## Decision rule
 
 No ecosystem integration may weaken the local-only boundary or turn browser observations into identity, trust, disclosure, fraud or legal decisions. When usefulness and authority conflict, the Transparency Layer remains informative and advisory.
+
+
+## Blind Provider & Convener Posture ("Convener statt Autoritaet")
+
+Aligned with the **miTch Policy Manifest** (*"miTch funktioniert nicht, weil es alles weiss — sondern weil es strukturell nichts wissen kann"*), the **Digital Rights Charter** (Articles 1 and 9), and the neutrality principle of **Section 26 TDDDG / EinwV**:
+
+1. **Structurally Blind Provider (`BLIND_CONVENER_POSTURE.structuralBlindness`):**
+   - **Never reads personal values:** `formValuesRead: false`, `cookieAndStorageValuesRead: false`.
+   - **Never leaks URL secrets:** `urlQueryAndFragmentExported: false` (origin-only receipts).
+   - **Zero remote network egress:** `connect-src 'none'` enforced in `manifest.json`; offline rulepack in `rules/known-surfaces.v1.json`.
+   - **Blind wallet handoff:** Uses URL hash fragments (`#demo=wallet...`) so local or remote HTTP logs never receive proof suggestion parameters.
+2. **Rule-Based Convener (`Convener statt Autoritaet`):**
+   - Convenes open vocabularies (**W3C DPV v2.0** Community Group Report, **ISO/IEC TS 27560:2023**, **W3C GPC Working Draft**, **W3C FedID Digital Credentials API**, and **ToS;DR CC BY-SA 3.0** declarations) without acting as an identity authority or data broker.
+   - Executes **Art. 9 AQDR** rule-based boundary and signal-vs-behavior checks (`evaluateSignalContradictions`) — such as flagging when `Sec-GPC: 1` is active while marketing/analytics tracker domains are contacted, or when raw `dpv:BirthDate` is requested where an ephemeral `age_over_18` predicate suffices — without ever inspecting personal data.
+   - **Economic Neutrality:** Operates with zero economic self-interest in user consents or data monetization (aligned with the neutrality principle of § 26 TDDDG / EinwV, while honestly stating that `v0.3.0` is an experimental local companion and does not claim formal BfDI recognition).

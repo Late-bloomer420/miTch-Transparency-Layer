@@ -43,6 +43,9 @@
       labelFirstPartyCookies: "First-party",
       labelThirdPartyCookies: "Third-party scope",
       storageTitle: "Client Storage",
+      convenerTitle: "Blind Provider & Convener · Privacy Signals",
+      convenerGuardrail:
+        "Rule over Authority: Structurally blind to your inputs (never reads typed values, cookies, or storage contents; connect-src 'none'). Convenes open rules (W3C DPV, GPC, AQDR Art. 9) with zero economic self-interest in your data.",
       visibilityTitle: "AskMI Data-Minimization & Visibility Layer",
       visibilityGuardrail:
         "Inspects form input attribute metadata only (WELT, GRUNDVERSORGUNG, VULNERABLE). Entered values are never read.",
@@ -117,6 +120,9 @@
       labelFirstPartyCookies: "Erstanbieter",
       labelThirdPartyCookies: "Drittanbieter-Bereich",
       storageTitle: "Client-Speicher",
+      convenerTitle: "Blinder Provider & Convener · Privatsphäre-Signale",
+      convenerGuardrail:
+        "Regel statt Autorität: Strukturell blind für Ihre Eingaben (liest niemals Formularwerte, Cookie- oder Speicherinhalte; connect-src 'none'). Prüft Regeln (W3C DPV, GPC, AQDR Art. 9) ohne wirtschaftliches Eigeninteresse an Ihren Daten.",
       visibilityTitle: "AskMI Datenminimierung & Sichtbarkeitsschicht",
       visibilityGuardrail:
         "Prüft ausschließlich Formularfeld-Metadaten (WELT, GRUNDVERSORGUNG, VULNERABLE). Eingegebene Werte werden niemals gelesen.",
