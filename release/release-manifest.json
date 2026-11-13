@@ -3,8 +3,8 @@
   "packageName": "mitch-transparency-layer",
   "status": "experimental-local-only",
   "manifestVersion": "0.3.0",
-  "sourceRevision": "v0.3.0+tree.ae04293aee26",
-  "sourceTreeSha256": "ae04293aee26327cdccf6af4616d6c7baa6fdbb128bcf7acc3fae111e424a59a",
+  "sourceRevision": "v0.3.0+tree.dce952988822",
+  "sourceTreeSha256": "dce952988822ee6a3d3a6f0c43f1bba4e0073574548c7b8ebc034386ff05e8c0",
   "ruleSetVersion": "visibility-rules-v1",
   "scoringRuleVersion": "surface-score-v1",
   "privacyPolicy": {
@@ -17,8 +17,8 @@
   "archive": {
     "path": "release/mitch-transparency-layer-v0.3.0.zip",
     "format": "pkzip-store-deterministic",
-    "bytes": 254456,
-    "sha256": "ce2fbbaaa4486df45d292aaa1f4d26eb50f873dab7c465c860df7970cf445986"
+    "bytes": 273488,
+    "sha256": "1aca04319c566024c92a03cf824072ff7eff53c0b49736131e6d8c098a42f814"
   },
   "commands": {
     "test": "node --test test/*.test.mjs",
@@ -38,7 +38,7 @@
     {
       "path": "build-meta.js",
       "bytes": 619,
-      "sha256": "e344091b844f9baf74f25850dc3a5d9f199c7996729dd3bc7226b377a954fa5e"
+      "sha256": "19ce59cb25956f792931eef62fe07a9f18262fa536dd3d6013272c5641b39fc3"
     },
     {
       "path": "comparison-store.js",
@@ -47,8 +47,8 @@
     },
     {
       "path": "content.js",
-      "bytes": 15982,
-      "sha256": "11a4e9af0e8d0cc99a784037d8f0aefadc605a1f7337d4c565e6e176011c33c1"
+      "bytes": 16620,
+      "sha256": "e0b33ec33b74807a9ae17627724759ff1f5398be6034f5fc20d2c944dc2132e3"
     },
     {
       "path": "domain-boundary.js",
@@ -82,13 +82,13 @@
     },
     {
       "path": "manifest.json",
-      "bytes": 1380,
-      "sha256": "6e00438458e70915a05f0354d1ccbca1c731e15db1b4a5877713703a8798cb4c"
+      "bytes": 1412,
+      "sha256": "47d67a4bd9f3e69cad0acf592e1393bb2c9a0d9ec2c4997134dd898aa09982a1"
     },
     {
       "path": "page-observer.js",
-      "bytes": 8031,
-      "sha256": "a927dbc8955f67335e5d6d6f7cd372e578f526fb3f0ca53701da5fca2c3c755e"
+      "bytes": 12168,
+      "sha256": "0b3047e54e44b502402fa4a632ed508c088e5ac32337305b878e6b2eb7365099"
     },
     {
       "path": "popup.css",
@@ -97,8 +97,8 @@
     },
     {
       "path": "popup.html",
-      "bytes": 12076,
-      "sha256": "9d077bc94cbc59d5d750f77e429e1ad738a95c5bb43405eeda2836e75ab88504"
+      "bytes": 12123,
+      "sha256": "4432da1cf963fe8387b30d133225f2ffa30dacbdaf7835b951a24b4d635ee79a"
     },
     {
       "path": "popup.js",
@@ -107,13 +107,18 @@
     },
     {
       "path": "proof-bridge.js",
-      "bytes": 15271,
-      "sha256": "a47afa58f393f22382f651a267f6741be91cf4b3d5f9f0d1e64476fa2c4ffce3"
+      "bytes": 15682,
+      "sha256": "4b388a1424a32c38c79dd489502c26a16e5b5d5d87074ee68d089cf931d63dc9"
+    },
+    {
+      "path": "standards-mapping.js",
+      "bytes": 10429,
+      "sha256": "e0372b5fe042cb87a8b90919e2707cb12a2f113b681ce2390c2d39ebe051371d"
     },
     {
       "path": "surface-receipt.js",
-      "bytes": 70190,
-      "sha256": "debf4001160b1eca9738ba46fa3e772d6f7b38b085a61ac35cecf1a5a05a9ca7"
+      "bytes": 73412,
+      "sha256": "440efd3f6ced00d39bb6ff770b3f29b8ffce57553070b3a1fbfece5695254a5b"
     }
   ]
 }

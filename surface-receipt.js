@@ -31,6 +31,20 @@
   const SCORING_RULE_VERSION = "surface-score-v1";
   const NORMALIZATION_VERSION = "1";
 
+  function getStandardsMapping() {
+    if (typeof globalThis !== "undefined" && globalThis.MitchStandardsMapping) {
+      return globalThis.MitchStandardsMapping;
+    }
+    if (typeof require === "function") {
+      try {
+        return require("./standards-mapping.js");
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
   const EVIDENCE_STATES = Object.freeze([
     "observed",
     "declared",
@@ -506,9 +520,14 @@
   function normalizeDeclarations(rawDeclarations) {
     if (!Array.isArray(rawDeclarations)) return [];
     const normalized = [];
+    const standards = getStandardsMapping();
     for (let i = 0; i < rawDeclarations.length; i += 1) {
-      const item = rawDeclarations[i];
+      let item = rawDeclarations[i];
       if (!item || typeof item !== "object") continue;
+      if (item.tosdr === true && standards && typeof standards.normalizeTosdrDeclaration === "function") {
+        item = standards.normalizeTosdrDeclaration(item);
+        if (!item) continue;
+      }
       const summary = sanitizePlainText(item.summary, "", 300);
       const sourceReference = sanitizeOriginOrUrlRef(item.sourceReference);
       const retrievedAt = typeof item.retrievedAt === "string" && !Number.isNaN(Date.parse(item.retrievedAt))
@@ -955,6 +974,8 @@
           ? f.suggestedMinimalClaims.filter((c) => typeof c === "string")
           : [];
 
+        const standards = getStandardsMapping();
+        const dpvMeta = standards ? standards.mapFieldKeyToDpv(key) : null;
         const entry = {
           id: `form.${key}`,
           key,
@@ -962,6 +983,7 @@
           evidenceState: "observed",
           summary: `${label} input field metadata observed`,
           layer,
+          dpvDataCategory: dpvMeta ? dpvMeta.dpvDataCategory : "dpv:PersonalData",
           hint,
           purposeKnown: false,
           valueInspected: false,
@@ -1023,6 +1045,52 @@
           }
         : null;
 
+    const rawPrivacySignals =
+      contentAvailable && contentObj.privacySignals && typeof contentObj.privacySignals === "object"
+        ? contentObj.privacySignals
+        : null;
+
+    if (rawPrivacySignals && rawPrivacySignals.gpcEnabled === true) {
+      observed.push({
+        id: "privacy.gpc.enabled",
+        evidenceState: "observed",
+        summary: "Browser Global Privacy Control signal (navigator.globalPrivacyControl = true) is active",
+        source: "navigator-gpc",
+        confidence: "high",
+        bounded: {
+          observed: "navigator.globalPrivacyControl is true in this browser context (Sec-GPC: 1 preference signal).",
+          declaredOrPossible: "W3C Global Privacy Control Working Draft signal expresses a user preference against cross-site data sale or sharing.",
+          notVerified: "GPC is not legally binding by itself; applicable legal obligations depend on jurisdiction (e.g., CCPA), and remote server adherence was not verified.",
+          unknown: "Whether the contacted server honours or ignores Sec-GPC: 1 is unknown."
+        }
+      });
+    }
+
+    if (rawPrivacySignals && rawPrivacySignals.digitalCredentialsCallObserved === true) {
+      observed.push({
+        id: "credentials.digital-credentials-api.call",
+        evidenceState: "observed",
+        summary: "Page invoked W3C Digital Credentials API (navigator.credentials.get({ digital }))",
+        source: "main-world-observer",
+        confidence: "high",
+        bounded: {
+          observed: "A call to navigator.credentials.get({ digital }) was observed in the page MAIN world.",
+          declaredOrPossible: "The site requested a verifiable credential presentation via the W3C FedID Digital Credentials API.",
+          notVerified: "Which credential claims were disclosed or whether the user approved the wallet prompt was not verified.",
+          unknown: "Relying-party backend verification and retention of presented proofs remain unknown."
+        }
+      });
+    }
+
+    const standardsHelper = getStandardsMapping();
+    const standardsSummary = standardsHelper
+      ? standardsHelper.buildStandardsSummary({
+          findings: visFindings,
+          domains: networkModel.domains,
+          privacySignals: rawPrivacySignals
+        })
+      : null;
+
     const visibilityModel = rawVis
       ? {
           available: true,
@@ -1034,7 +1102,8 @@
             welt: Math.max(0, Math.floor((rawVis.counts && rawVis.counts.welt) || 0))
           },
           findings: visFindings,
-          proofSuggestion
+          proofSuggestion,
+          ...(standardsSummary ? { standards: standardsSummary } : {})
         }
       : {
           available: false,
@@ -1042,7 +1111,8 @@
           fieldMetadataOnly: true,
           counts: null,
           findings: [],
-          proofSuggestion: null
+          proofSuggestion: null,
+          ...(standardsSummary ? { standards: standardsSummary } : {})
         };
 
     // --- 4. Permissions ---

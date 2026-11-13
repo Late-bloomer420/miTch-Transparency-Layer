@@ -26,6 +26,7 @@
       ],
       "js": [
         "domain-boundary.js",
+        "standards-mapping.js",
         "proof-bridge.js",
         "content.js"
       ],

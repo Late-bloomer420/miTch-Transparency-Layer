@@ -1,0 +1,13 @@
+{
+  "name": "mitch-transparency-layer",
+  "version": "0.3.0",
+  "description": "AskMI Visibility & Evidence Companion — local-only browser surface receipts (askmi.transparency.surface-receipt.v1) and advisory Proof Bridge suggestions.",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "release:build": "node scripts/build-release.mjs",
+    "release:verify": "node scripts/build-release.mjs --verify",
+    "receipt:validate-fixtures": "node cli/mitch-scan.mjs validate fixtures/receipts/allowed.json && node cli/mitch-scan.mjs validate fixtures/receipts/limited.json && node cli/mitch-scan.mjs validate fixtures/receipts/high-surface.json && node cli/mitch-scan.mjs validate fixtures/receipts/unavailable.json"
+  }
+}

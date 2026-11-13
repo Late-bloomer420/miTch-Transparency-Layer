@@ -388,10 +388,19 @@
 
     try {
       const target = new URL(baseUrl);
-      target.searchParams.set("demo", "wallet");
-      target.searchParams.set("proofBridge", PROOF_BRIDGE_VERSION);
-      target.searchParams.set("contractVersion", CLAIM_CONTRACT_VERSION);
-      target.searchParams.set("suggest", validClaims.join(","));
+      if (options && options.useHashFragment === true) {
+        const hashParams = new URLSearchParams();
+        hashParams.set("demo", "wallet");
+        hashParams.set("proofBridge", PROOF_BRIDGE_VERSION);
+        hashParams.set("contractVersion", CLAIM_CONTRACT_VERSION);
+        hashParams.set("suggest", validClaims.join(","));
+        target.hash = hashParams.toString();
+      } else {
+        target.searchParams.set("demo", "wallet");
+        target.searchParams.set("proofBridge", PROOF_BRIDGE_VERSION);
+        target.searchParams.set("contractVersion", CLAIM_CONTRACT_VERSION);
+        target.searchParams.set("suggest", validClaims.join(","));
+      }
       const finalHref = target.toString();
       return isAllowedLocalWalletOrigin(finalHref) ? finalHref : null;
     } catch {

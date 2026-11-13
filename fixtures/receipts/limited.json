@@ -204,7 +204,42 @@
     "fieldMetadataOnly": true,
     "counts": null,
     "findings": [],
-    "proofSuggestion": null
+    "proofSuggestion": null,
+    "standards": {
+      "dpv": {
+        "vocabulary": "W3C Data Privacy Vocabulary (DPV)",
+        "version": "2.0",
+        "uri": "https://w3id.org/dpv#",
+        "status": "w3c-community-group-report",
+        "normativeW3cStandard": false,
+        "note": "DPV is a W3C Data Privacy Vocabularies and Controls Community Group report (not a normative W3C Recommendation). Used here strictly as a descriptive taxonomy for observed browser surface categories.",
+        "observedFieldDataCategories": [],
+        "unverifiedThirdPartyPurposes": [
+          "dpv:TechnicalServiceProvision"
+        ]
+      },
+      "iso27560": {
+        "specification": "ISO/IEC TS 27560:2023",
+        "status": "iso-technical-specification",
+        "role": "structural-reference-for-notice-and-receipt-records",
+        "note": "Provides structural alignment for receipt provenance, notice references, and evidence states without claiming legal consent validity."
+      },
+      "gpc": {
+        "specification": "W3C Global Privacy Control (GPC)",
+        "status": "w3c-working-draft",
+        "draftDate": "2026-09-24",
+        "legallyBindingByItself": false,
+        "note": "GPC (Sec-GPC: 1 / navigator.globalPrivacyControl) is a technical user preference signal. It is not legally binding by itself; legal obligations depend on applicable jurisdiction (such as CCPA regulations), and remote server compliance cannot be verified by this browser extension.",
+        "navigatorGlobalPrivacyControl": null
+      },
+      "digitalCredentialsApi": {
+        "specification": "W3C FedID Digital Credentials API",
+        "status": "w3c-working-draft",
+        "note": "Allows websites to request selective verifiable credential presentations from a registered wallet provider via navigator.credentials.get({ digital }).",
+        "apiAvailableInBrowser": null,
+        "invocationObserved": false
+      }
+    }
   },
   "permissions": [
     {
@@ -291,7 +326,7 @@
   "integrity": {
     "normalizationVersion": "1",
     "contentHashAlgorithm": "sha-256",
-    "contentHash": "3a339fb744d8e83727a1d2d971131946bcdcda56f3c2be4dff1397da3074850c",
+    "contentHash": "263adb0f10716b5bf9ee8cb3490db78426ca6ed3dd3cb3ebae26b39741f7cf82",
     "signature": null
   }
 }
